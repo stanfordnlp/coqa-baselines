@@ -1,3 +1,3 @@
 [submodule "OpenNMT-py"]
-	path = OpenNMT-py
+	path = seq2seq
 	url = https://github.com/OpenNMT/OpenNMT-py
