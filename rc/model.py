@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
 
-from .word_model import WordModel, CharModel
+from .word_model import WordModel
 from .utils.eval_utils import compute_eval_metric
 from .layers import multi_nll_loss
 from .utils import constants as Constants
@@ -34,11 +34,7 @@ class Model(object):
             word_model = WordModel(self.config['embed_type'],
                                    dataset=self.config['dataset'],
                                    additional_vocab=vocab)
-            if self.config['char_embed'] > 0:
-                char_model = CharModel(self.config['char_embed'], self.config['char_vocab'], train_set)
-                self._init_new_network(train_set, word_model, char_model)
-            else:
-                self._init_new_network(train_set, word_model)
+            self._init_new_network(train_set, word_model)
 
         num_params = 0
         for name, p in self.network.named_parameters():
@@ -55,16 +51,14 @@ class Model(object):
 
         _OVERWRITTEN_ARGUMENTS = ['model', 'rnn_padding', 'embed_type', 'hidden_size', 'num_layers', 'rnn_type',
                                   'concat_rnn_layers', 'question_merge', 'use_qemb', 'f_qem', 'f_pos', 'f_ner',
-                                  'sum_loss', 'doc_self_attn', 'char_vocab', 'max_word_len', 'char_embed',
-                                  'char_layer', 'filter_height', 'resize_rnn_input', 'span_dependency',
-                                  'fix_embeddings', 'dropout_rnn', 'dropout_emb', 'dropout_char',
-                                  'dropout_ff', 'dropout_rnn_output', 'variational_dropout', 'word_dropout']
+                                  'sum_loss', 'doc_self_attn', 'resize_rnn_input', 'span_dependency',
+                                  'fix_embeddings', 'dropout_rnn', 'dropout_emb', 'dropout_ff',
+                                  'dropout_rnn_output', 'variational_dropout', 'word_dropout']
 
         # Load all saved fields.
         fname = os.path.join(Constants._RESULTS_DIR, saved_dir, Constants._SAVED_WEIGHTS_FILE)
         print('[ Loading saved model %s ]' % fname)
         saved_params = torch.load(fname, map_location=lambda storage, loc: storage)
-        self.char_dict = saved_params['char_dict']
         self.word_dict = saved_params['word_dict']
         self.feature_dict = saved_params['feature_dict']
         self.config['num_features'] = len(self.feature_dict)
@@ -82,12 +76,7 @@ class Model(object):
             raise ValueError('embed_type = {} not recognized.'.format(self.config['embed_type']))
 
         w_embedding = self._init_embedding(len(self.word_dict) + 1, embed_size)  # Should load saved below.
-
-        if self.char_dict is None:
-            self.network = DrQA(self.config, w_embedding)
-        else:
-            c_embedding = self._init_embedding(len(self.char_dict) + 1, self.config["char_embed"])
-            self.network = DrQA(self.config, w_embedding, c_embedding)
+        self.network = DrQA(self.config, w_embedding)
 
         # Merge the arguments
         if self.state_dict:
@@ -97,28 +86,20 @@ class Model(object):
                     merged_state_dict[k] = v
             self.network.load_state_dict(merged_state_dict)
 
-    def _init_new_network(self, train_set, word_model, char_model=None):
+    def _init_new_network(self, train_set, word_model):
         self.feature_dict = self._build_feature_dict(train_set)
         self.config['num_features'] = len(self.feature_dict)
         self.word_dict = word_model.get_vocab()
         w_embedding = self._init_embedding(word_model.vocab_size, word_model.embed_size,
                                            pretrained_vecs=word_model.get_word_vecs())
-
-        if char_model is not None:
-            self.char_dict = char_model.get_vocab()
-            self.network = DrQA(self.config, w_embedding, self._init_embedding(
-                                                              char_model.vocab_size, char_model.embed_size))
-        else:
-            self.char_dict = None
-            self.network = DrQA(self.config, w_embedding)
+        self.network = DrQA(self.config, w_embedding)
 
     def _init_embedding(self, vocab_size, embed_size, pretrained_vecs=None):
-        """Initializes the embeddings - character or word embeddings.
+        """Initializes the embeddings
         """
-        embedding = nn.Embedding(vocab_size, embed_size, padding_idx=0,
-                                 _weight=torch.from_numpy(pretrained_vecs).float()
-                                 if pretrained_vecs is not None else None)
-        return embedding
+        return nn.Embedding(vocab_size, embed_size, padding_idx=0,
+                            _weight=torch.from_numpy(pretrained_vecs).float()
+                            if pretrained_vecs is not None else None)
 
     def _build_feature_dict(self, train_set):
         feature_dict = {}
@@ -168,19 +149,16 @@ class Model(object):
         res = self.network(ex)
         score_s, score_e = res['score_s'], res['score_e']
 
-        span_loss_val, chunk_loss_val = -1, -1
+        output = {
+            'f1': 0.0,
+            'em': 0.0,
+            'loss': 0.0
+        }
         # Loss cannot be computed for test-time as we may not have targets
         if update:
             # Compute loss and accuracies
-            span_loss = self.compute_span_loss(score_s, score_e, res['targets'])
-            span_loss_val = span_loss.item()
-
-            if 'chunk_loss' in res:
-                loss = span_loss + res['chunk_loss']
-                chunk_loss_val = res['chunk_loss'].item()
-            else:
-                loss = span_loss
-                chunk_loss_val = 0.0
+            loss = self.compute_span_loss(score_s, score_e, res['targets'])
+            output['loss'] = loss.item()
 
             # Clear gradients and run backward
             self.optimizer.zero_grad()
@@ -193,21 +171,11 @@ class Model(object):
             self.optimizer.step()
 
         if (not update) or self.config['predict_train']:
-            action_idxs = res.get('action_idxs', [0] * ex['batch_size'])
-            predictions, spans = self.extract_predictions(ex, score_s, score_e, action_idxs)
-            f1, em = self.evaluate_predictions(predictions, ex['answers'])
-        else:
-            f1 = em = 0.0
-            predictions = None
-
-        output = {'f1': f1, 'em': em,
-                  'span_loss': span_loss_val,
-                  'chunk_loss': chunk_loss_val,
-                  'chunk_target_acc': res['chunk_target_acc'],
-                  'chunk_any_acc': res['chunk_any_acc']}
-        if out_predictions:
-            output['predictions'] = predictions
-            output['spans'] = spans
+            predictions, spans = self.extract_predictions(ex, score_s, score_e)
+            output['f1'], output['em'] = self.evaluate_predictions(predictions, ex['answers'])
+            if out_predictions:
+                output['predictions'] = predictions
+                output['spans'] = spans
         return output
 
     def compute_span_loss(self, score_s, score_e, targets):
@@ -218,24 +186,18 @@ class Model(object):
             loss = F.nll_loss(score_s, targets[:, 0]) + F.nll_loss(score_e, targets[:, 1])
         return loss
 
-    def extract_predictions(self, ex, score_s, score_e, action_idxs):
+    def extract_predictions(self, ex, score_s, score_e):
         # Transfer to CPU/normal tensors for numpy ops (and convert log probabilities to probabilities)
         score_s = score_s.exp().squeeze()
         score_e = score_e.exp().squeeze()
-        idx = torch.LongTensor([0])
         predictions = []
         spans = []
-        for i, action_id in enumerate(action_idxs):
-            if action_id >= 0:
-                if self.config['predict_raw_text']:
-                    prediction, span = self._scores_to_raw_text(ex['raw_evidence_text'][i][action_id],
-                                                                ex['offsets'][i][action_id], score_s[idx], score_e[idx])
-                else:
-                    prediction, span = self._scores_to_text(ex['evidence_text'][i][action_id],
-                                                            score_s[idx], score_e[idx])
-                idx += 1
+        for i, (_s, _e) in enumerate(zip(score_s, score_e)):
+            if self.config['predict_raw_text']:
+                prediction, span = self._scores_to_raw_text(ex['raw_evidence_text'][i],
+                                                            ex['offsets'][i], _s, _e)
             else:
-                prediction = ""
+                prediction, span = self._scores_to_text(ex['evidence_text'][i], _s, _e)
             predictions.append(prediction)
             spans.append(span)
         return predictions, spans
@@ -267,7 +229,6 @@ class Model(object):
                 'network': self.network.state_dict(),
             },
             'word_dict': self.word_dict,
-            'char_dict': self.char_dict,
             'feature_dict': self.feature_dict,
             'config': self.config,
             'dir': dirname,

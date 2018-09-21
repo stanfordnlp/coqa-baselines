@@ -27,28 +27,6 @@ def normalize_text(s):
     return white_space_fix(remove_articles(remove_punc(lower(s))))
 
 
-def triviaqa_normalize_text(s):
-    """Lower text and remove punctuation, articles and extra whitespace."""
-
-    def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
-
-    def white_space_fix(text):
-        return ' '.join(text.split())
-
-    def handle_punc(text):
-        exclude = set(string.punctuation + "".join([u"‘", u"’", u"´", u"`"]))
-        return ''.join(ch if ch not in exclude else ' ' for ch in text)
-
-    def lower(text):
-        return text.lower()
-
-    def replace_underscore(text):
-        return text.replace('_', ' ')
-
-    return white_space_fix(remove_articles(handle_punc(lower(replace_underscore(s))))).strip()
-
-
 class AverageMeter(object):
     """Computes and stores the average and current value."""
     def __init__(self):
@@ -79,11 +57,7 @@ class AverageMeter(object):
 def compute_eval_metric(eval_metric, predictions, ground_truths, dataset='triviqa'):
     fns = {'f1': compute_f1_score,
            'em': compute_em_score}
-
-    normalize_fns = {'triviaqa': triviaqa_normalize_text,
-                     'squad': normalize_text,
-                     'coqa': normalize_text}
-    normalize_fn = normalize_fns[dataset]
+    normalize_fn = normalize_text[dataset]
 
     def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
         scores_for_ground_truths = []

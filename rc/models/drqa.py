@@ -8,28 +8,17 @@ class DrQA(nn.Module):
     """Network for the Document Reader module of DrQA."""
     _RNN_TYPES = {'lstm': nn.LSTM, 'gru': nn.GRU, 'rnn': nn.RNN}
 
-    def __init__(self, config, w_embedding, c_embedding=None):
-        """Configuration, word embeddings, (optional) character embeddings."""
+    def __init__(self, config, w_embedding):
+        """Configuration, word embeddings"""
         super(DrQA, self).__init__()
         # Store config
         self.config = config
         self.w_embedding = w_embedding
-        input_w_dim = self.w_embedding.embedding_dim + config["char_embed"]  # "char_embed" is 0 if c_embedding is None.
+        input_w_dim = self.w_embedding.embedding_dim
         q_input_size = input_w_dim
         if self.config['fix_embeddings']:
             for p in self.w_embedding.parameters():
                 p.requires_grad = False
-
-        if config["char_embed"]:
-            self.char_layer = layers.CharEmbeddingLayer(
-                char_embedding=c_embedding,
-                input_size=config["char_embed"],
-                hidden_size=config["char_embed"],
-                layer_type=config["char_layer"],
-                dropout=config["dropout_char"],
-                variational_dropout=config["variational_dropout"],
-                filter_height=config["filter_height"],
-            )
 
         # Projection for attention weighted question
         if self.config['use_qemb']:
@@ -110,14 +99,6 @@ class DrQA(nn.Module):
         xd_f = document word features indices  (batch, max_d_len, nfeat)
         xd_mask = document padding mask        (batch, max_d_len)
         targets = span targets                 (batch,)
-        chunk_targets = chunk targets          (batch,)
-
-        Optional:
-        c_emb = character indices unique words (t_unique_words, max_w_len)
-        c_emb_mask = character indices mask    (t_unique_words, max_w_len)
-        c_layer_lookup = lookup table          (t_unique_words + 1, char_embed)
-        xqc = question word lookup indices     (batch, max_q_len)
-        xdc = document word lookup indices     (batch, max_c_len)
         """
 
         # Embed both document and question
@@ -129,16 +110,6 @@ class DrQA(nn.Module):
         xd_emb = layers.dropout(xd_emb, self.config['dropout_emb'], shared_axes=shared_axes, training=self.training)
         xd_mask = ex['xd_mask']
         xq_mask = ex['xq_mask']
-
-        # Character embeddings
-        if self.config["char_embed"] > 0:
-            xc_rep = self.char_layer(ex['c_emb'], ex['c_emb_mask'])
-            # Copy weights into lookup nn.embedding (leave index-0 padding-index)
-            ex['c_layer_lookup'].weight[1:, :] = xc_rep
-            xqc_emb = ex['c_layer_lookup'](ex['xqc'])               # (batch, max_q_len, char_emb)
-            xdc_emb = ex['c_layer_lookup'](ex['xdc'])               # (batch, max_d_len, char_emb)
-            xq_emb = torch.cat([xq_emb, xqc_emb], 2)                # (batch, max_q_len, word_embed + char_emb)
-            xd_emb = torch.cat([xd_emb, xdc_emb], 2)                # (batch, max_d_len, word_embed + char_emb)
 
         # Add attention-weighted question representation
         if self.config['use_qemb']:
@@ -180,10 +151,6 @@ class DrQA(nn.Module):
             question_hidden = torch.cat([question_hidden, (doc_hiddens * start_scores.exp().unsqueeze(2)).sum(1)], 1)
         end_scores = self.end_attn(doc_hiddens, question_hidden, xd_mask)
 
-        chunk_acc = (ex['chunk_targets'] >= 0).float().sum() / len(ex['chunk_targets'])
-
         return {'score_s': start_scores,
                 'score_e': end_scores,
-                'targets': ex['targets'],
-                'chunk_target_acc': chunk_acc,
-                'chunk_any_acc': chunk_acc}
+                'targets': ex['targets']}

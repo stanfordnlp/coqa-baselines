@@ -57,14 +57,6 @@ def get_args():
     group.add_argument('--sum_loss', type=str2bool, default=False, help="Set the type of loss.")
     group.add_argument('--doc_self_attn', type=str2bool, default=False,
                        help="Set whether to use self attention on the document.")
-    group.add_argument('--char_vocab', type=int, default=200, help='Max. number of character vocabulary.')
-    group.add_argument('--max_word_len', type=int, default=30, help='Truncate word length for character embedding.')
-    group.add_argument('--char_embed', type=int, default=0,
-                       help='Set embedding and hidden size for character representations.')
-    group.add_argument('--char_layer', type=str, choices=['conv', 'lstm'], default='conv',
-                       help='Set character embedding layer to "conv" or "lstm".')
-    group.add_argument('--filter_height', type=int, default=5,
-                       help='Set filter height if using "conv" in character embedding layer.')
     group.add_argument('--resize_rnn_input', type=str2bool, default=False,
                        help='Reshape input layer to hidden size dimension.')
     group.add_argument('--span_dependency', type=str2bool, default=True,
@@ -72,7 +64,6 @@ def get_args():
     group.add_argument('--fix_embeddings', type=str2bool, default=False, help='Whether to fix embeddings.')
     group.add_argument('--dropout_rnn', type=float, default=0.3, help='Set RNN dropout in reader.')
     group.add_argument('--dropout_emb', type=float, default=0.5, help='Set embedding dropout.')
-    group.add_argument('--dropout_char', type=float, default=0.3, help='Set character embedding dropout.')
     group.add_argument('--dropout_ff', type=float, default=0.5, help='Set dropout for all feedforward layers.')
     group.add_argument('--dropout_rnn_output', type=str2bool, default=True, help='Whether to dropout last layer.')
     group.add_argument('--variational_dropout', type=str2bool, default=True, help='Set variational dropout on/off.')

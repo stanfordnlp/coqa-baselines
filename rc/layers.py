@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Parameter
 
 
 ################################################################################
@@ -200,124 +199,6 @@ class LinearSeqAttn(nn.Module):
         scores.masked_fill_(x_mask, -float('inf'))
         alpha = F.softmax(scores, dim=-1)
         return alpha
-
-
-class NLinearBoWAttn(nn.Module):
-    """Choi et al's BoW model (section 4.1):
-    cat_bow = [mean(sentence wvecs); mean(question wvecs)]
-    sentence score = softmax(v.T * Relu(W * cat_bow + b))
-    """
-    def __init__(self, doc_input_size, q_input_size, hidden_size,
-                 n_layers, dropout_rate=0):
-        super(NLinearBoWAttn, self).__init__()
-        self.dropout_rate = dropout_rate
-        self.averager = SeqAverager()
-        self.linears = nn.ModuleList()
-        inp_size = doc_input_size + q_input_size
-        for i in range(n_layers):
-            self.linears.append(nn.Linear(inp_size, hidden_size, bias=True))
-            inp_size = hidden_size
-        self.vec = Parameter(torch.randn(hidden_size))
-
-    def forward(self, xq_rep, xq_mask, xds_rep, xds_mask, xds_nchunks):
-        """Inputs:
-        xq_rep = questions representation     (t_chunks, len_q, dim_q)
-        xq_mask = questions masks             (t_chunks, len_q)
-        xds_rep = documents representation    (t_chunks, len_chunk, dim_c)
-        xds_mask = documents masks            (t_chunks, len_chunk)
-        xds_nchunks = num_chunks per doc      (batch,)
-        """
-        raise NotImplementedError
-
-
-class SeqAverager(nn.Module):
-    def __init__(self):
-        super(SeqAverager, self).__init__()
-
-    def forward(self, x, x_mask):
-        """Average over the sequence of vectors."""
-        sum_x = x.sum(1).squeeze().float()
-        x_lens = x_mask.eq(0).long().sum(1).view(-1, 1).expand_as(sum_x).float()  # (T, dim_q)
-        assert sum_x.size() == x_lens.size()
-        mean_x = sum_x / x_lens
-        return mean_x
-
-
-class StochasticSampler(nn.Module):
-    def __init__(self):
-        super(StochasticSampler, self).__init__()
-
-    def forward(self, probs, sample=False):
-        """Select actions by sampling or argmax."""
-        if sample:
-            sample = probs.multinomial(1).squeeze()
-        else:
-            sample = probs.max(1)[1]
-        return sample
-
-
-class CharEmbeddingLayer(nn.Module):
-    """Embeds the character representations then runs the specified model
-    (either RNN or ConvNN) on the words."""
-
-    def __init__(self, char_embedding, input_size, hidden_size, layer_type,
-                 dropout, variational_dropout, filter_height=5):
-        super(CharEmbeddingLayer, self).__init__()
-        self.char_embedding = char_embedding
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.dropout = dropout
-        self.variational_dropout = variational_dropout
-        self.layer_type = layer_type
-        if layer_type == 'conv':
-            self.cnn = nn.Conv1d(input_size, hidden_size, filter_height, padding=0)
-        elif layer_type == 'lstm':
-            self.rnn = StackedBRNN(
-                input_size=input_size,
-                hidden_size=hidden_size,
-                num_layers=1,
-                dropout_rate=dropout,
-                dropout_output=False,  # dropout on input only
-                variational_dropout=variational_dropout,
-                concat_layers=False,
-                rnn_type=nn.LSTM,
-                padding=True,
-                bidirectional=False,
-                return_single_timestep=True,
-            )
-        else:
-            raise Exception('ERROR: Invalid paramater "layer_type" passed into character embedding layer.')
-
-    def forward(self, x, x_mask):
-        n_words, max_word_len = x.size()
-        x_emb = self.char_embedding(x)
-        assert x_emb.size() == (n_words, max_word_len, self.input_size)
-        assert x_mask.size() == (n_words, max_word_len)
-        if self.layer_type == 'conv':
-            return self._forward_conv(x_emb, x_mask)
-        else:
-            return self._forward_rnn(x_emb, x_mask)
-
-    def _forward_conv(self, x, x_mask):
-        # dropout + cnn
-        n_words, max_word_len, input_size = x.size()
-        x = dropout(x, self.dropout, shared_axes=[1] if self.variational_dropout else [], training=self.training)
-        x = torch.transpose(x, 1, 2)  # (n_words, input_size, max_word_len)
-        x = self.cnn(x)
-        assert x.size() == (n_words, self.hidden_size, x.size(2))
-        x = x.contiguous().view(n_words * self.hidden_size, -1)
-        x = F.relu(x)
-
-        # maxpool
-        x = torch.max(x, 1)[0].squeeze()
-        assert x.size() == (n_words * self.hidden_size,)
-        return x.contiguous().view(n_words, self.hidden_size)
-
-    def _forward_rnn(self, x, x_mask):
-        n_words, max_word_len, input_size = x.size()
-        x = self.rnn(x, x_mask)  # Note: dropout inside RNN
-        assert x.size() == (n_words, self.hidden_size)
-        return x
 
 ################################################################################
 # Functional #

@@ -34,16 +34,11 @@ class ModelHandler(object):
         test_set = datasets['test']
 
         # Evaluation Metrics:
-        self._train_span_loss = AverageMeter()
-        self._train_chunk_loss = AverageMeter()
+        self._train_loss = AverageMeter()
         self._train_f1 = AverageMeter()
         self._train_em = AverageMeter()
-        self._train_chunk_target_acc = AverageMeter()
-        self._train_chunk_any_acc = AverageMeter()
         self._dev_f1 = AverageMeter()
         self._dev_em = AverageMeter()
-        self._dev_chunk_target_acc = AverageMeter()
-        self._dev_chunk_any_acc = AverageMeter()
 
         # Data Handlers
         self.train_loader = DataLoader(train_set, batch_size=config['batch_size'],
@@ -60,6 +55,7 @@ class ModelHandler(object):
 
         # Data trackers
         self._n_train_examples = 0
+        self._n_dev_examples = len(dev_set)
         self._n_test_examples = len(test_set)
 
         self.model = Model(config, train_set)
@@ -74,14 +70,10 @@ class ModelHandler(object):
         print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
         self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
         timer.interval("Validation Epoch {}".format(self._epoch))
-        format_str = "Validation Epoch {} -- Chunk Acc: target - {:0.2f}, " + \
-                     "any - {:0.2f}, F1: {:0.2f}, EM: {:0.2f} --"
-        print(format_str.format(self._epoch, self._dev_chunk_target_acc.mean(),
-              self._dev_chunk_any_acc.mean(), self._dev_f1.mean(), self._dev_em.mean()))
+        format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
+        print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
         self._best_f1 = self._dev_f1.mean()
         self._best_em = self._dev_em.mean()
-        self._best_chunk_target_acc = self._dev_chunk_target_acc.mean()
-        self._best_chunk_any_acc = self._dev_chunk_any_acc.mean()
         if self.config['save_params']:
             self.model.save(self.logger.dirname)
         self._reset_metrics()
@@ -92,46 +84,34 @@ class ModelHandler(object):
             print("\n>>> Train Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
             self._run_epoch(self.train_loader, training=True, verbose=self.config['verbose'])
             train_epoch_time = timer.interval("Training Epoch {}".format(self._epoch))
-            format_str = "Training Epoch {} -- Span Loss: {:0.4f}, Chunk Loss: {:0.4f}, " + \
-                         "Chunk Acc: target - {:0.2f}, any - {:0.2f}, F1: {:0.2f}, EM: {:0.2f} --"
-            print(format_str.format(self._epoch, self._train_span_loss.mean(), self._train_chunk_loss.mean(),
-                  self._train_chunk_target_acc.mean(), self._train_chunk_any_acc.mean(),
+            format_str = "Training Epoch {} -- Loss: {:0.4f}, F1: {:0.2f}, EM: {:0.2f} --"
+            print(format_str.format(self._epoch, self._train_loss.mean(),
                   self._train_f1.mean(), self._train_em.mean()))
 
             print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
             self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
             timer.interval("Validation Epoch {}".format(self._epoch))
-            format_str = "Validation Epoch {} -- Chunk Acc: target - {:0.2f}, " + \
-                         "any - {:0.2f}, F1: {:0.2f}, EM: {:0.2f} --"
-            print(format_str.format(self._epoch, self._dev_chunk_target_acc.mean(),
-                  self._dev_chunk_any_acc.mean(), self._dev_f1.mean(), self._dev_em.mean()))
+            format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
+            print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
 
             if self._best_f1 <= self._dev_f1.mean():  # Can be one of loss, f1, or em.
                 self._best_epoch = self._epoch
                 self._best_f1 = self._dev_f1.mean()
                 self._best_em = self._dev_em.mean()
-                self._best_chunk_target_acc = self._dev_chunk_target_acc.mean()
-                self._best_chunk_any_acc = self._dev_chunk_any_acc.mean()
                 if self.config['save_params']:
                     self.model.save(self.logger.dirname)
                 print("!!! Updated: F1: {:0.2f}, EM: {:0.2f}".format(self._best_f1, self._best_em))
 
             self._reset_metrics()
-            self.logger.log(self._train_span_loss.last, Constants._TRAIN_SPAN_LOSS_EPOCH_LOG)
-            self.logger.log(self._train_chunk_loss.last, Constants._TRAIN_CHUNK_LOSS_EPOCH_LOG)
+            self.logger.log(self._train_loss.last, Constants._TRAIN_SPAN_LOSS_EPOCH_LOG)
             self.logger.log(self._train_f1.last, Constants._TRAIN_F1_EPOCH_LOG)
             self.logger.log(self._train_em.last, Constants._TRAIN_EM_EPOCH_LOG)
-            self.logger.log(self._train_chunk_target_acc.last, Constants._TRAIN_CHUNK_TARGET_ACC_EPOCH_LOG)
-            self.logger.log(self._train_chunk_any_acc.last, Constants._TRAIN_CHUNK_ANY_ACC_EPOCH_LOG)
             self.logger.log(self._dev_f1.last, Constants._DEV_F1_EPOCH_LOG)
             self.logger.log(self._dev_em.last, Constants._DEV_EM_EPOCH_LOG)
-            self.logger.log(self._dev_chunk_target_acc.last, Constants._DEV_CHUNK_TARGET_ACC_EPOCH_LOG)
-            self.logger.log(self._dev_chunk_any_acc.last, Constants._DEV_CHUNK_ANY_ACC_EPOCH_LOG)
             self.logger.log(train_epoch_time, Constants._TRAIN_EPOCH_TIME_LOG)
 
         timer.finish()
         self.training_time = timer.total
-        # self.logger.graph_learning_curves()
 
         print("Finished Training: {}".format(self.logger.dirname))
         print(self.summary())
@@ -155,20 +135,17 @@ class ModelHandler(object):
 
         test_f1 = self._dev_f1.mean()
         test_em = self._dev_em.mean()
-        test_chunk_target_acc = self._dev_chunk_target_acc.mean()
-        test_chunk_any_acc = self._dev_chunk_any_acc.mean()
 
         timer.finish()
-        print(self.report(self._n_test_batches, None, None, test_chunk_target_acc,
-              test_chunk_any_acc, test_f1, test_em, mode='test'))
-        self.logger.log([test_chunk_target_acc, test_chunk_any_acc, test_f1, test_em], Constants._TEST_EVAL_LOG)
+        print(self.report(self._n_test_batches, test_f1, test_em, mode='test'))
+        self.logger.log([test_f1, test_em], Constants._TEST_EVAL_LOG)
         print("Finished Testing: {}".format(self.logger.dirname))
 
     def _run_epoch(self, data_loader, training=True, verbose=10, out_predictions=False):
         start_time = time.time()
         output = []
         for step, input_batch in enumerate(data_loader):
-            input_batch = sanitize_input(input_batch, self.config, self.model.word_dict, self.model.char_dict,
+            input_batch = sanitize_input(input_batch, self.config, self.model.word_dict,
                                          self.model.feature_dict, training=training)
             x_batch = vectorize_input(input_batch, self.config, training=training, device=self.device)
             if not x_batch:
@@ -176,88 +153,63 @@ class ModelHandler(object):
 
             res = self.model.predict(x_batch, update=training, out_predictions=out_predictions)
 
-            span_loss = res['span_loss']
-            chunk_loss = res['chunk_loss']
+            loss = res['loss']
             f1 = res['f1']
             em = res['em']
-            chunk_target_acc = res['chunk_target_acc']
-            chunk_any_acc = res['chunk_any_acc']
-
-            self._update_metrics(span_loss, chunk_loss, f1, em, chunk_target_acc,
-                                 chunk_any_acc, x_batch['batch_size'], training=training)
+            self._update_metrics(loss, f1, em, x_batch['batch_size'], training=training)
 
             if training:
                 self._n_train_examples += x_batch['batch_size']
 
             if (verbose > 0) and (step % verbose == 0):
                 mode = "train" if training else ("test" if self.is_test else "dev")
-                print(self.report(step, span_loss, chunk_loss, chunk_target_acc * 100,
-                      chunk_any_acc * 100, f1 * 100, em * 100, mode))
+                print(self.report(step, loss, f1 * 100, em * 100, mode))
                 print('used_time: {:0.2f}s'.format(time.time() - start_time))
 
             if out_predictions:
                 for id, prediction, span in zip(input_batch['id'], res['predictions'], res['spans']):
-                    _start, _end = span[0], span[1]
                     output.append({'id': id,
                                    'answer': prediction,
-                                   'span_start': _start,
-                                   'span_end': _end})
+                                   'span_start': span[0],
+                                   'span_end': span[1]})
         return output
 
-    def report(self, step, span_loss, chunk_loss, chunk_target_acc,
-               chunk_any_acc, f1, em, mode='train', n_batches=None):
+    def report(self, step, loss, f1, em, mode='train'):
         if mode == "train":
-            loss = span_loss + chunk_loss
-            format_str = "[train-{}] step: [{} / {}] | exs = {} | chunk_acc = {:0.2f} / {:0.2f} | " + \
-                         "loss = {:0.4f} = {:0.4f} + {:0.4f} | f1 = {:0.2f} | em = {:0.2f}"
-            return (format_str.format(self._epoch, step, self._n_train_batches, self._n_train_examples,
-                                      chunk_target_acc, chunk_any_acc, loss, chunk_loss, span_loss, f1, em))
+            format_str = "[train-{}] step: [{} / {}] | exs = {} | loss = {:0.4f} | f1 = {:0.2f} | em = {:0.2f}"
+            return format_str.format(self._epoch, step, self._n_train_batches, self._n_train_examples, loss, f1, em)
         elif mode == "dev":
-            return (
-                '[predict-{}] step: [{} / {}] | chunk_acc = {:0.2f} / {:0.2f} | f1 = {:0.2f} | em = {:0.2f}'
-                .format(self._epoch, step, self._n_dev_batches, chunk_target_acc, chunk_any_acc, f1, em))
+            return "[predict-{}] step: [{} / {}] | f1 = {:0.2f} | em = {:0.2f}".format(
+                    self._epoch, step, self._n_dev_batches, f1, em)
         elif mode == "test":
-            return (
-                '[test] | test_exs = {} | step: [{} / {}] | chunk_acc = {:0.2f} / {:0.2f} | f1 = {:0.2f} | em = {:0.2f}'
-                .format(self._n_test_examples, step, self._n_test_batches, chunk_target_acc, chunk_any_acc, f1, em))
+            return "[test] | test_exs = {} | step: [{} / {}] | f1 = {:0.2f} | em = {:0.2f}".format(
+                    self._n_test_examples, step, self._n_test_batches, f1, em)
         else:
             raise ValueError('mode = {} not supported.' % mode)
 
     def summary(self):
         start = " <<<<<<<<<<<<<<<< MODEL SUMMARY >>>>>>>>>>>>>>>> "
-        info = "Best epoch = {}\nDev chunk accuracy = {:0.2f} / {:0.2f}\nDev F1 = {:0.2f}\nDev EM = {:0.2f}".format(
-            self._best_epoch, self._best_chunk_target_acc, self._best_chunk_any_acc, self._best_f1, self._best_em)
+        info = "Best epoch = {}\nDev F1 = {:0.2f}\nDev EM = {:0.2f}".format(
+            self._best_epoch, self._best_f1, self._best_em)
         end = " <<<<<<<<<<<<<<<< MODEL SUMMARY >>>>>>>>>>>>>>>> "
         return "\n".join([start, info, end])
 
-    def _update_metrics(self, span_loss, chunk_loss, f1, em, chunk_target_acc,
-                        chunk_any_acc, batch_size, training=True):
+    def _update_metrics(self, span_loss, f1, em, batch_size, training=True):
         if training:
             if span_loss > 0:
-                self._train_span_loss.update(span_loss)
-            if chunk_loss > 0:
-                self._train_chunk_loss.update(chunk_loss)
+                self._train_loss.update(span_loss)
             self._train_f1.update(f1 * 100, batch_size)
             self._train_em.update(em * 100, batch_size)
-            self._train_chunk_target_acc.update(chunk_target_acc * 100, batch_size)
-            self._train_chunk_any_acc.update(chunk_any_acc * 100, batch_size)
         else:
             self._dev_f1.update(f1 * 100, batch_size)
             self._dev_em.update(em * 100, batch_size)
-            self._dev_chunk_target_acc.update(chunk_target_acc * 100, batch_size)
-            self._dev_chunk_any_acc.update(chunk_any_acc * 100, batch_size)
 
     def _reset_metrics(self):
-        self._train_span_loss.reset()
-        self._train_chunk_loss.reset()
+        self._train_loss.reset()
         self._train_f1.reset()
         self._train_em.reset()
-        self._train_chunk_target_acc.reset()
-        self._train_chunk_any_acc.reset()
         self._dev_f1.reset()
         self._dev_em.reset()
-        self._dev_chunk_target_acc.reset()
-        self._dev_chunk_any_acc.reset()
 
     def _stop_condition(self, epoch):
         """
