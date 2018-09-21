@@ -27,7 +27,7 @@ _TRAIN_EM_ITER_LOG = "metrics/train_em_iter.txt"
 _DEV_F1_ITER_LOG = "metrics/dev_f1_iter.txt"
 _DEV_EM_ITER_LOG = "metrics/dev_em_iter.txt"
 
-_TRAIN_SPAN_LOSS_EPOCH_LOG = "metrics/train_span_loss_epoch.txt"
+_TRAIN_LOSS_EPOCH_LOG = "metrics/train_loss_epoch.txt"
 _TRAIN_F1_EPOCH_LOG = "metrics/train_f1_epoch.txt"
 _TRAIN_EM_EPOCH_LOG = "metrics/train_em_epoch.txt"
 _TRAIN_EPOCH_TIME_LOG = "metrics/train_time_epoch.txt"

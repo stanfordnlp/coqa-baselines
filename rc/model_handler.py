@@ -103,7 +103,7 @@ class ModelHandler(object):
                 print("!!! Updated: F1: {:0.2f}, EM: {:0.2f}".format(self._best_f1, self._best_em))
 
             self._reset_metrics()
-            self.logger.log(self._train_loss.last, Constants._TRAIN_SPAN_LOSS_EPOCH_LOG)
+            self.logger.log(self._train_loss.last, Constants._TRAIN_LOSS_EPOCH_LOG)
             self.logger.log(self._train_f1.last, Constants._TRAIN_F1_EPOCH_LOG)
             self.logger.log(self._train_em.last, Constants._TRAIN_EM_EPOCH_LOG)
             self.logger.log(self._dev_f1.last, Constants._DEV_F1_EPOCH_LOG)
@@ -194,10 +194,9 @@ class ModelHandler(object):
         end = " <<<<<<<<<<<<<<<< MODEL SUMMARY >>>>>>>>>>>>>>>> "
         return "\n".join([start, info, end])
 
-    def _update_metrics(self, span_loss, f1, em, batch_size, training=True):
+    def _update_metrics(self, loss, f1, em, batch_size, training=True):
         if training:
-            if span_loss > 0:
-                self._train_loss.update(span_loss)
+            self._train_loss.update(loss)
             self._train_f1.update(f1 * 100, batch_size)
             self._train_em.update(em * 100, batch_size)
         else:
