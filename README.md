@@ -4,6 +4,7 @@ We provide several baselines: conversational models, extractive reading comprehe
 ## Requirements
 1. PyTorch 0.4
 2. pycorenlp
+3. gensim
 
 TODO
 
@@ -68,6 +69,8 @@ Generate the input files for the reading comprehension (extractive question answ
 ```
 
 ## Combined models
+
+## Results
 
 ## Citation
 

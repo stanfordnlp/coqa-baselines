@@ -7,7 +7,7 @@ import numpy as np
 
 from .word_model import WordModel
 from .utils.eval_utils import compute_eval_metric
-from .layers import multi_nll_loss
+from .models.layers import multi_nll_loss
 from .utils import constants as Constants
 from collections import Counter
 from .models.drqa import DrQA
@@ -18,12 +18,13 @@ class Model(object):
     architecture, saving, updating examples, and predicting examples.
     """
 
-    def __init__(self, config, train_set):
+    def __init__(self, config, train_set=None):
         # Book-keeping.
         self.config = config
         if self.config['pretrained']:
             self.init_saved_network(self.config['pretrained'])
         else:
+            assert train_set is not None
             print('Train vocab: {}'.format(len(train_set.vocab)))
             vocab = Counter()
             for w in train_set.vocab:
@@ -31,9 +32,11 @@ class Model(object):
                     vocab[w] = train_set.vocab[w]
             print('Pruned train vocab: {}'.format(len(vocab)))
             # Building network.
-            word_model = WordModel(self.config['embed_type'],
-                                   dataset=self.config['dataset'],
+            word_model = WordModel(embed_size=self.config['embed_size'],
+                                   filename=self.config['embed_file'],
+                                   embed_type=self.config['embed_type'],
                                    additional_vocab=vocab)
+            self.config['embed_size'] = word_model.embed_size
             self._init_new_network(train_set, word_model)
 
         num_params = 0
@@ -46,36 +49,26 @@ class Model(object):
         self._init_optimizer()
 
     def init_saved_network(self, saved_dir):
-        # TO ADD: 'bow_layers', 'curriculum', 'reinforce_penalty',  'rnn_selector_hidden', 'bow_hidden_size',
-        # 'rnn_sent_selector', 'dropout_bow'
-
-        _OVERWRITTEN_ARGUMENTS = ['model', 'rnn_padding', 'embed_type', 'hidden_size', 'num_layers', 'rnn_type',
-                                  'concat_rnn_layers', 'question_merge', 'use_qemb', 'f_qem', 'f_pos', 'f_ner',
-                                  'sum_loss', 'doc_self_attn', 'resize_rnn_input', 'span_dependency',
-                                  'fix_embeddings', 'dropout_rnn', 'dropout_emb', 'dropout_ff',
-                                  'dropout_rnn_output', 'variational_dropout', 'word_dropout']
+        _ARGUMENTS = ['model', 'rnn_padding', 'embed_size', 'hidden_size', 'num_layers', 'rnn_type',
+                      'concat_rnn_layers', 'question_merge', 'use_qemb', 'f_qem', 'f_pos', 'f_ner',
+                      'sum_loss', 'doc_self_attn', 'resize_rnn_input', 'span_dependency',
+                      'fix_embeddings', 'dropout_rnn', 'dropout_emb', 'dropout_ff',
+                      'dropout_rnn_output', 'variational_dropout', 'word_dropout']
 
         # Load all saved fields.
-        fname = os.path.join(Constants._RESULTS_DIR, saved_dir, Constants._SAVED_WEIGHTS_FILE)
+        fname = os.path.join(saved_dir, Constants._SAVED_WEIGHTS_FILE)
         print('[ Loading saved model %s ]' % fname)
         saved_params = torch.load(fname, map_location=lambda storage, loc: storage)
         self.word_dict = saved_params['word_dict']
         self.feature_dict = saved_params['feature_dict']
         self.config['num_features'] = len(self.feature_dict)
         self.state_dict = saved_params['state_dict']
-        for k in _OVERWRITTEN_ARGUMENTS:
+        for k in _ARGUMENTS:
             if saved_params['config'][k] != self.config[k]:
                 print('Overwrite {}: {} -> {}'.format(k, self.config[k], saved_params['config'][k]))
                 self.config[k] = saved_params['config'][k]
 
-        if self.config['embed_type'] in ['word2vec', 'glove840b', 'fasttext']:
-            embed_size = 300
-        elif self.config['embed_type'] == 'glove6b':
-            embed_size = 50
-        else:
-            raise ValueError('embed_type = {} not recognized.'.format(self.config['embed_type']))
-
-        w_embedding = self._init_embedding(len(self.word_dict) + 1, embed_size)  # Should load saved below.
+        w_embedding = self._init_embedding(len(self.word_dict) + 1, self.config['embed_size'])
         self.network = DrQA(self.config, w_embedding)
 
         # Merge the arguments
@@ -90,7 +83,7 @@ class Model(object):
         self.feature_dict = self._build_feature_dict(train_set)
         self.config['num_features'] = len(self.feature_dict)
         self.word_dict = word_model.get_vocab()
-        w_embedding = self._init_embedding(word_model.vocab_size, word_model.embed_size,
+        w_embedding = self._init_embedding(word_model.vocab_size, self.config['embed_size'],
                                            pretrained_vecs=word_model.get_word_vecs())
         self.network = DrQA(self.config, w_embedding)
 
@@ -234,6 +227,6 @@ class Model(object):
             'dir': dirname,
         }
         try:
-            torch.save(params, os.path.join(Constants._RESULTS_DIR, dirname, Constants._SAVED_WEIGHTS_FILE))
+            torch.save(params, os.path.join(dirname, Constants._SAVED_WEIGHTS_FILE))
         except BaseException:
             print('[ WARN: Saving failed... continuing anyway. ]')

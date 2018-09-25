@@ -4,7 +4,6 @@ Module to handle word vectors and initializing embeddings.
 """
 
 import numpy as np
-import os
 from gensim.models.keyedvectors import KeyedVectors
 
 from .utils import constants as Constants
@@ -13,17 +12,23 @@ from collections import Counter
 
 
 ################################################################################
-# Constants #
-################################################################################
-
-_SMALL_GLOVE = 'glove.6B.50d.txt'
-_LARGE_GLOVE = 'glove.840B.300d.txt'
-_WORD2VEC = 'GoogleNews-vectors-negative300.bin'
-_FASTTEXT = 'crawl-300d-2M.vec'
-
-################################################################################
 # WordModel Class #
 ################################################################################
+
+class GloveModel(object):
+
+    def __init__(self, filename):
+        self.word_vecs = {}
+        self.vocab = []
+
+        with open(filename, "rb") as input_file:
+            for line in input_file.readlines():
+                w = line.strip().split()[0]
+                self.word_vecs[w] = np.array(map(float, line.strip().split()[1:]))
+                self.vocab.append(w)
+
+        self.vocab_size = len(self.vocab)
+        self.vector_size = len(self.word_vecs[w])
 
 
 class WordModel(object):
@@ -31,25 +36,21 @@ class WordModel(object):
     for any pretrained word vectors.
     """
 
-    def __init__(self, model, dataset=None, additional_vocab=Counter()):
-
-        if model is None:
+    def __init__(self, embed_size=None, filename=None, embed_type='glove', additional_vocab=Counter()):
+        if filename is None:
+            if embed_size is None:
+                raise Exception('Either embed_file or embed_size needs to be specified.')
+            self.embed_size = embed_size
             self._model = None
-        elif model == 'glove6b':
-            self.set_model(_SMALL_GLOVE, dataset=dataset, binary=False)
-        elif model == 'glove840b':
-            self.set_model(_LARGE_GLOVE, dataset=dataset, binary=False)
-        elif model == 'word2vec':
-            self.set_model(_WORD2VEC, dataset=dataset, binary=True)
-        elif model == 'fasttext':
-            self.set_model(_FASTTEXT, dataset=dataset, binary=False)
         else:
-            raise ValueError('embed_type = {} not recognized.'.format(model))
+            self.set_model(filename, embed_type)
+            self.embed_size = self._model.vector_size
 
         # padding: 0
         self.vocab = {Constants._UNK_TOKEN: 1}
-        for key in self._model.vocab:
-            self.vocab[key] = len(self.vocab) + 1
+        if self._model is not None:
+            for key in self._model.vocab:
+                self.vocab[key] = len(self.vocab) + 1
         n_added = 0
         for w, count in additional_vocab.most_common():
             if w not in self.vocab:
@@ -59,7 +60,6 @@ class WordModel(object):
                     print('Added word: {} (train_freq = {})'.format(w, count))
         print('Added {} words to the vocab in total.'.format(n_added))
 
-        self.embed_size = self.get_embed_size()
         self.vocab_size = len(self.vocab) + 1
         self.word_vecs = np.random.rand(self.vocab_size, self.embed_size) * 0.2 - 0.1
         for word in self.vocab:
@@ -67,17 +67,15 @@ class WordModel(object):
             if word in self._model.vocab:
                 self.word_vecs[idx] = self._model.word_vec(word, use_norm=False)
 
-    def set_model(self, filename, dataset=None, binary=False):
-        if (dataset is not None) and (os.path.isfile(Constants._WORDVEC_DIR + dataset + '.' + filename)):
-            filename = dataset + '.' + filename
+    def set_model(self, filename, embed_type='glove'):
         timer = Timer('Load {}'.format(filename))
-        self._model = KeyedVectors.load_word2vec_format(Constants._WORDVEC_DIR + filename, binary=binary)
+        if embed_type == 'glove':
+            self._model = GloveModel(filename)
+        else:
+            self._model = KeyedVectors.load_word2vec_format(filename, binary=True
+                                                            if embed_type == 'word2vec' else False)
+        print('Embeddings: vocab = {}, embed_size = {}'.format(self._model.vocab_size, self._model.vector_size))
         timer.finish()
-
-    def get_embed_size(self):
-        if self._model is None:
-            raise Exception('ERROR: Model not yet specified')
-        return self._model.vector_size
 
     def get_vocab(self):
         return self.vocab

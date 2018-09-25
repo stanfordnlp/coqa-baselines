@@ -18,9 +18,8 @@ class ModelHandler(object):
     """
 
     def __init__(self, config):
-        if config['dir'] is not None and os.path.exists('{}/{}'.format(Constants._RESULTS_DIR, config['dir'])):
-            config['pretrained'] = config['dir']
-        self.logger = ModelLogger(config, dirname=config['dir'], saved_dir=config['pretrained'])
+        self.dirname = config['dir']
+        self.logger = ModelLogger(config, dirname=self.dirname)
         cuda = config['cuda']
         cuda_id = config['cuda_id']
         if not cuda:
@@ -40,42 +39,54 @@ class ModelHandler(object):
         self._dev_f1 = AverageMeter()
         self._dev_em = AverageMeter()
 
-        # Data Handlers
-        self.train_loader = DataLoader(train_set, batch_size=config['batch_size'],
-                                       shuffle=config['shuffle'], collate_fn=lambda x: x, pin_memory=True)
-        self.dev_loader = DataLoader(dev_set, batch_size=config['batch_size'],
-                                     shuffle=False, collate_fn=lambda x: x, pin_memory=True)
-        self.test_loader = DataLoader(test_set, batch_size=config['batch_size'], shuffle=False,
-                                      collate_fn=lambda x: x, pin_memory=True)
+        if train_set:
+            self.train_loader = DataLoader(train_set, batch_size=config['batch_size'],
+                                           shuffle=config['shuffle'], collate_fn=lambda x: x, pin_memory=True)
+        else:
+            self.train_loader = None
 
-        # Num batches
-        self._n_train_batches = len(train_set) // config['batch_size']
-        self._n_dev_batches = len(dev_set) // config['batch_size']
-        self._n_test_batches = len(test_set) // config['batch_size']
+        if dev_set:
+            self.dev_loader = DataLoader(dev_set, batch_size=config['batch_size'],
+                                         shuffle=False, collate_fn=lambda x: x, pin_memory=True)
+            self._n_dev_batches = len(dev_set) // config['batch_size']
+        else:
+            self.dev_loader = None
 
-        # Data trackers
+        if test_set:
+            self.test_loader = DataLoader(test_set, batch_size=config['batch_size'], shuffle=False,
+                                          collate_fn=lambda x: x, pin_memory=True)
+            self._n_test_batches = len(test_set) // config['batch_size']
+            self._n_test_examples = len(test_set)
+        else:
+            self.test_loader = None
+
         self._n_train_examples = 0
-        self._n_dev_examples = len(dev_set)
-        self._n_test_examples = len(test_set)
-
         self.model = Model(config, train_set)
         self.model.network = self.model.network.to(self.device)
         self.config = self.model.config
         self.is_test = False
 
     def train(self):
+
+        if self.train_loader is None:
+            print("No training set specified -- skipped training.")
+            return
+
         self.is_test = False
         timer = Timer("Train")
         self._epoch = self._best_epoch = 0
-        print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
-        self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
-        timer.interval("Validation Epoch {}".format(self._epoch))
-        format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
-        print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
+
+        if self.dev_loader is not None:
+            print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
+            self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
+            timer.interval("Validation Epoch {}".format(self._epoch))
+            format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
+            print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
+
         self._best_f1 = self._dev_f1.mean()
         self._best_em = self._dev_em.mean()
         if self.config['save_params']:
-            self.model.save(self.logger.dirname)
+            self.model.save(self.dirname)
         self._reset_metrics()
 
         while self._stop_condition(self._epoch):
@@ -88,18 +99,19 @@ class ModelHandler(object):
             print(format_str.format(self._epoch, self._train_loss.mean(),
                   self._train_f1.mean(), self._train_em.mean()))
 
-            print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
-            self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
-            timer.interval("Validation Epoch {}".format(self._epoch))
-            format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
-            print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
+            if self.dev_loader is not None:
+                print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
+                self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
+                timer.interval("Validation Epoch {}".format(self._epoch))
+                format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
+                print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
 
             if self._best_f1 <= self._dev_f1.mean():  # Can be one of loss, f1, or em.
                 self._best_epoch = self._epoch
                 self._best_f1 = self._dev_f1.mean()
                 self._best_em = self._dev_em.mean()
                 if self.config['save_params']:
-                    self.model.save(self.logger.dirname)
+                    self.model.save(self.dirname)
                 print("!!! Updated: F1: {:0.2f}, EM: {:0.2f}".format(self._best_f1, self._best_em))
 
             self._reset_metrics()
@@ -113,10 +125,14 @@ class ModelHandler(object):
         timer.finish()
         self.training_time = timer.total
 
-        print("Finished Training: {}".format(self.logger.dirname))
+        print("Finished Training: {}".format(self.dirname))
         print(self.summary())
 
     def test(self):
+        if self.test_loader is None:
+            print("No testing set specified -- skipped testing.")
+            return
+
         self.is_test = True
         self._reset_metrics()
         timer = Timer("Test")
@@ -129,7 +145,7 @@ class ModelHandler(object):
             ex['turn_id'] = _id[1]
 
         if self.config['out_predictions']:
-            output_file = os.path.join(Constants._RESULTS_DIR, self.logger.dirname, Constants._PREDICTION_FILE)
+            output_file = os.path.join(self.dirname, Constants._PREDICTION_FILE)
             with open(output_file, 'w') as outfile:
                 json.dump(output, outfile, indent=4)
 
@@ -139,7 +155,7 @@ class ModelHandler(object):
         timer.finish()
         print(self.report(self._n_test_batches, test_f1, test_em, mode='test'))
         self.logger.log([test_f1, test_em], Constants._TEST_EVAL_LOG)
-        print("Finished Testing: {}".format(self.logger.dirname))
+        print("Finished Testing: {}".format(self.dirname))
 
     def _run_epoch(self, data_loader, training=True, verbose=10, out_predictions=False):
         start_time = time.time()

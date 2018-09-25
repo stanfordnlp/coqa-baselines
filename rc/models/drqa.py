@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-import src.layers as layers
 import torch.nn.functional as F
+from .layers import SeqAttnMatch, StackedBRNN, LinearSeqAttn, BilinearSeqAttn
+from .layers import weighted_avg, uniform_weights, dropout
 
 
 class DrQA(nn.Module):
@@ -22,7 +23,7 @@ class DrQA(nn.Module):
 
         # Projection for attention weighted question
         if self.config['use_qemb']:
-            self.qemb_match = layers.SeqAttnMatch(input_w_dim)
+            self.qemb_match = SeqAttnMatch(input_w_dim)
 
         # Input size to RNN: word emb + question emb + manual features
         doc_input_size = input_w_dim + self.config['num_features']
@@ -36,7 +37,7 @@ class DrQA(nn.Module):
             doc_input_size = q_input_size = config['hidden_size']
 
         # RNN document encoder
-        self.doc_rnn = layers.StackedBRNN(
+        self.doc_rnn = StackedBRNN(
             input_size=doc_input_size,
             hidden_size=config['hidden_size'],
             num_layers=config['num_layers'],
@@ -50,7 +51,7 @@ class DrQA(nn.Module):
         )
 
         # RNN question encoder
-        self.question_rnn = layers.StackedBRNN(
+        self.question_rnn = StackedBRNN(
             input_size=q_input_size,
             hidden_size=config['hidden_size'],
             num_layers=config['num_layers'],
@@ -71,22 +72,22 @@ class DrQA(nn.Module):
             question_hidden_size *= config['num_layers']
 
         if config['doc_self_attn']:
-            self.doc_self_attn = layers.SeqAttnMatch(doc_hidden_size)
+            self.doc_self_attn = SeqAttnMatch(doc_hidden_size)
             doc_hidden_size = doc_hidden_size + question_hidden_size
 
         # Question merging
         if config['question_merge'] not in ['avg', 'self_attn']:
             raise NotImplementedError('question_merge = %s' % config['question_merge'])
         if config['question_merge'] == 'self_attn':
-            self.self_attn = layers.LinearSeqAttn(question_hidden_size)
+            self.self_attn = LinearSeqAttn(question_hidden_size)
 
         # Bilinear attention for span start/end
-        self.start_attn = layers.BilinearSeqAttn(
+        self.start_attn = BilinearSeqAttn(
             doc_hidden_size,
             question_hidden_size,
         )
         q_rep_size = question_hidden_size + doc_hidden_size if config['span_dependency'] else question_hidden_size
-        self.end_attn = layers.BilinearSeqAttn(
+        self.end_attn = BilinearSeqAttn(
             doc_hidden_size,
             q_rep_size,
         )
@@ -106,8 +107,8 @@ class DrQA(nn.Module):
         xd_emb = self.w_embedding(ex['xd'])                         # (batch, max_d_len, word_embed)
 
         shared_axes = [2] if self.config['word_dropout'] else []
-        xq_emb = layers.dropout(xq_emb, self.config['dropout_emb'], shared_axes=shared_axes, training=self.training)
-        xd_emb = layers.dropout(xd_emb, self.config['dropout_emb'], shared_axes=shared_axes, training=self.training)
+        xq_emb = dropout(xq_emb, self.config['dropout_emb'], shared_axes=shared_axes, training=self.training)
+        xd_emb = dropout(xd_emb, self.config['dropout_emb'], shared_axes=shared_axes, training=self.training)
         xd_mask = ex['xd_mask']
         xq_mask = ex['xq_mask']
 
@@ -140,10 +141,10 @@ class DrQA(nn.Module):
         # Encode question with RNN + merge hiddens
         question_hiddens = self.question_rnn(xq_emb, xq_mask)
         if self.config['question_merge'] == 'avg':
-            q_merge_weights = layers.uniform_weights(question_hiddens, xq_mask)
+            q_merge_weights = uniform_weights(question_hiddens, xq_mask)
         elif self.config['question_merge'] == 'self_attn':
             q_merge_weights = self.self_attn(question_hiddens.contiguous(), xq_mask)
-        question_hidden = layers.weighted_avg(question_hiddens, q_merge_weights)
+        question_hidden = weighted_avg(question_hiddens, q_merge_weights)
 
         # Predict start and end positions
         start_scores = self.start_attn(doc_hiddens, question_hidden, xd_mask)

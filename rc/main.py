@@ -29,21 +29,26 @@ def main(args):
 
 def get_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--trainset', type=str, default=None, help='Training set')
+    parser.add_argument('--devset', type=str, default=None, help='Dev set')
+    parser.add_argument('--testset', type=str, default=None, help='Test set')
+    parser.add_argument('--dir', type=str, required=True, help='Set the name of the model directory for this session.')
+    parser.add_argument('--pretrained', type=str, default=None, help='Specify pretrained model directory.')
+
     parser.add_argument('--random_seed', type=int, default=123, help='Random seed')
     parser.add_argument('--cuda', type=str2bool, default=True, help='Run network on cuda (GPU) or not.')
     parser.add_argument('--cuda_id', type=int, default=-1, help='Specify a CUDA id.')
     parser.add_argument('--debug', type=str2bool, default=False)
-    parser.add_argument('--dir', type=str, default=None,
-                        help='Set the name of the model directory in results/ for this session.')
-    parser.add_argument('--pretrained', type=str, default=None, help='Specify pretrained model directory.')
+
     parser.add_argument('--n_history', type=int, default=0)
     parser.add_argument('--cased', type=str2bool, default=True, help='Cased or uncased version.')
     parser.add_argument('--min_freq', type=int, default=100)
 
     group = parser.add_argument_group('model_spec')
     group.add_argument('--rnn_padding', type=str2bool, default=False, help='Whether to use RNN padding.')
-    group.add_argument('--embed_type', type=str, choices=['glove6b', 'glove840b', 'word2vec', 'fasttext'],
-                       default='fasttext', help='Choose word embeddings.')
+    group.add_argument('--embed_file', type=str, default=None)
+    group.add_argument('--embed_size', type=int, default=None)
+    group.add_argument('--embed_type', type=str, default='glove', choices=['glove', 'word2vec', 'fasttext'])
     group.add_argument('--hidden_size', type=int, default=300, help='Set hidden size.')
     group.add_argument('--num_layers', type=int, default=3, help='Number of layers for document/question encoding.')
     group.add_argument('--rnn_type', type=str, choices=['lstm', 'gru', 'rnn'], default='lstm', help='RNN type.')

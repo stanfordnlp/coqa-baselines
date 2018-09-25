@@ -19,9 +19,9 @@ from .timer import Timer
 ################################################################################
 
 def prepare_datasets(config):
-    train_set = CoQADataset(config['trainset'], config)
-    dev_set = CoQADataset(config['devset'], config)
-    test_set = CoQADataset(config['testset'], config)
+    train_set = None if config['trainset'] is None else CoQADataset(config['trainset'], config)
+    dev_set = None if config['devset'] is None else CoQADataset(config['devset'], config)
+    test_set = None if config['testset'] is None else CoQADataset(config['testset'], config)
     return {'train': train_set, 'dev': dev_set, 'test': test_set}
 
 ################################################################################
