@@ -34,10 +34,10 @@ Download pre-trained word vectors:
 
 ## Conversational models
 ### Preprocessing
-Generate the input files for seq2seq models (needs to start a CoreNLP server):
+Generate the input files for seq2seq models --- needs to start a CoreNLP server:
 ```bash
-  python scripts/gen_seq2seq_data.py -d data/coqa-train-v1.0.json --n_history 2 --lower -o data/seq2seq-train-h2
-  python scripts/gen_seq2seq_data.py -d data/coqa-dev-v1.0.json --n_history 2 --lower -o data/seq2seq-dev-h2
+  python scripts/gen_seq2seq_data.py --data_file data/coqa-train-v1.0.json --n_history 2 --lower --output_file data/seq2seq-train-h2
+  python scripts/gen_seq2seq_data.py --data_file data/coqa-dev-v1.0.json --n_history 2 --lower --output_file data/seq2seq-dev-h2
 ```
 Options:
 * `n_history` can be changed to {0, 1, 2, ..} or -1.
@@ -48,8 +48,24 @@ Preprocess the data and embeddings:
   PYTHONPATH=seq2seq python seq2seq/tools/embeddings_to_torch.py -emb_file_enc wordvecs/glove.42B.300d.txt -emb_file_dec wordvecs/glove.42B.300d.txt -dict_file data/seq2seq-h2.vocab.pt -output_file data/seq2seq.embed
 ```
 
-## Reading comprehension models
+### Training
+Run a seq2seq (with attention) model:
+```bash
+   python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt
+```
 
+Run a seq2seq+copy model:
+```bash
+   python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt
+```
+
+## Reading comprehension models
+### Preprocessing
+Generate the input files for the reading comprehension (extractive question answering) model -- needs to start a CoreNLP server:
+```bash
+  python scripts/gen_drqa_data.py --data_file data/coqa-train-v1.0.json --output_file coqa.train.json
+  python scripts/gen_drqa_data.py --data_file data/coqa-dev-v1.0.json --output_file coqa.dev.json
+```
 
 ## Combined models
 
