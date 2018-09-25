@@ -20,15 +20,18 @@ class GloveModel(object):
     def __init__(self, filename):
         self.word_vecs = {}
         self.vocab = []
-
-        with open(filename, "rb") as input_file:
+        with open(filename, 'r') as input_file:
             for line in input_file.readlines():
-                w = line.strip().split()[0]
-                self.word_vecs[w] = np.array(map(float, line.strip().split()[1:]))
+                splitLine = line.split(' ')
+                w = splitLine[0]
+                self.word_vecs[w] = np.array([float(val) for val in splitLine[1:]])
                 self.vocab.append(w)
 
         self.vocab_size = len(self.vocab)
         self.vector_size = len(self.word_vecs[w])
+
+    def word_vec(self, word):
+        return self.word_vecs[word]
 
 
 class WordModel(object):
@@ -36,7 +39,7 @@ class WordModel(object):
     for any pretrained word vectors.
     """
 
-    def __init__(self, embed_size=None, filename=None, embed_type='glove', additional_vocab=Counter()):
+    def __init__(self, embed_size=None, filename=None, embed_type='glove', top_n=None, additional_vocab=Counter()):
         if filename is None:
             if embed_size is None:
                 raise Exception('Either embed_file or embed_size needs to be specified.')
@@ -49,8 +52,11 @@ class WordModel(object):
         # padding: 0
         self.vocab = {Constants._UNK_TOKEN: 1}
         if self._model is not None:
-            for key in self._model.vocab:
+            for i, key in enumerate(self._model.vocab):
+                if (top_n is not None) and (i >= top_n):
+                    break
                 self.vocab[key] = len(self.vocab) + 1
+
         n_added = 0
         for w, count in additional_vocab.most_common():
             if w not in self.vocab:
@@ -65,7 +71,7 @@ class WordModel(object):
         for word in self.vocab:
             idx = self.vocab[word]
             if word in self._model.vocab:
-                self.word_vecs[idx] = self._model.word_vec(word, use_norm=False)
+                self.word_vecs[idx] = self._model.word_vec(word)
 
     def set_model(self, filename, embed_type='glove'):
         timer = Timer('Load {}'.format(filename))

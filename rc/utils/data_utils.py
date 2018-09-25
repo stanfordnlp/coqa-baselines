@@ -92,7 +92,7 @@ class CoQADataset(Dataset):
                   'targets': qas['answer_span']}
 
         if self.config['predict_raw_text']:
-            sample['raw_evidence'] = [paragraph['context']]
+            sample['raw_evidence'] = paragraph['context']
         return sample
 
 
@@ -252,11 +252,11 @@ def featurize(question, document, feature_dict):
             features[i][feature_dict['f_qem_cased']] = 1.0
         if 'f_qem_uncased' in feature_dict and d_word.lower() in q_uncased_words:
             features[i][feature_dict['f_qem_uncased']] = 1.0
-        if 'pos' in document['pos']:
+        if 'pos' in document:
             f_pos = 'f_pos={}'.format(document['pos'][i])
             if f_pos in feature_dict:
                 features[i][feature_dict[f_pos]] = 1.0
-        if 'ner' in document['ner']:
+        if 'ner' in document:
             f_ner = 'f_ner={}'.format(document['ner'][i])
             if f_ner in feature_dict:
                 features[i][feature_dict[f_ner]] = 1.0

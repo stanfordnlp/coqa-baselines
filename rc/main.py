@@ -42,7 +42,8 @@ def get_args():
 
     parser.add_argument('--n_history', type=int, default=0)
     parser.add_argument('--cased', type=str2bool, default=True, help='Cased or uncased version.')
-    parser.add_argument('--min_freq', type=int, default=100)
+    parser.add_argument('--min_freq', type=int, default=20)
+    parser.add_argument('--top_vocab', type=int, default=100000)
 
     group = parser.add_argument_group('model_spec')
     group.add_argument('--rnn_padding', type=str2bool, default=False, help='Whether to use RNN padding.')
@@ -107,12 +108,12 @@ def str2bool(v):
 
 
 def print_config(config):
-    print(" **************** MODEL CONFIGURATION **************** ")
+    print("**************** MODEL CONFIGURATION ****************")
     for key in sorted(config.keys()):
         val = config[key]
         keystr = "{}".format(key) + (" " * (24 - len(key)))
         print("{} -->   {}".format(keystr, val))
-    print(" **************** MODEL CONFIGURATION **************** ")
+    print("**************** MODEL CONFIGURATION ****************")
 
 ################################################################################
 # Module Command-line Behavior #

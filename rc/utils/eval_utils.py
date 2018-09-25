@@ -54,21 +54,20 @@ class AverageMeter(object):
         return self.sum / self.count
 
 
-def compute_eval_metric(eval_metric, predictions, ground_truths, dataset='triviqa'):
+def compute_eval_metric(eval_metric, predictions, ground_truths, cross_eval=True):
     fns = {'f1': compute_f1_score,
            'em': compute_em_score}
-    normalize_fn = normalize_text[dataset]
 
     def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
         scores_for_ground_truths = []
         for ground_truth in ground_truths:
-            score = metric_fn(normalize_fn(prediction), normalize_fn(ground_truth))
+            score = metric_fn(normalize_text(prediction), normalize_text(ground_truth))
             scores_for_ground_truths.append(score)
         return max(scores_for_ground_truths)
 
     values = []
     for prediction, ground_truth_set in zip(predictions, ground_truths):
-        if dataset == 'coqa' and len(ground_truth_set) > 1:
+        if cross_eval and len(ground_truth_set) > 1:
             _scores = []
             for i in range(len(ground_truth_set)):
                 _ground_truth_set = []

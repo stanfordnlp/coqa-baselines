@@ -42,6 +42,7 @@ class ModelHandler(object):
         if train_set:
             self.train_loader = DataLoader(train_set, batch_size=config['batch_size'],
                                            shuffle=config['shuffle'], collate_fn=lambda x: x, pin_memory=True)
+            self._n_train_batches = len(train_set) // config['batch_size']
         else:
             self.train_loader = None
 

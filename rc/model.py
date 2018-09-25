@@ -35,6 +35,7 @@ class Model(object):
             word_model = WordModel(embed_size=self.config['embed_size'],
                                    filename=self.config['embed_file'],
                                    embed_type=self.config['embed_type'],
+                                   top_n=self.config['top_vocab'],
                                    additional_vocab=vocab)
             self.config['embed_size'] = word_model.embed_size
             self._init_new_network(train_set, word_model)
@@ -45,7 +46,6 @@ class Model(object):
             num_params += p.numel()
         print('#Parameters = {}\n'.format(num_params))
 
-        # Building optimizer.
         self._init_optimizer()
 
     def init_saved_network(self, saved_dir):
@@ -183,6 +183,7 @@ class Model(object):
         # Transfer to CPU/normal tensors for numpy ops (and convert log probabilities to probabilities)
         score_s = score_s.exp().squeeze()
         score_e = score_e.exp().squeeze()
+
         predictions = []
         spans = []
         for i, (_s, _e) in enumerate(zip(score_s, score_e)):
@@ -212,8 +213,8 @@ class Model(object):
         return raw_text[offsets[s_idx][0]: offsets[e_idx][1]], (offsets[s_idx][0], offsets[e_idx][1])
 
     def evaluate_predictions(self, predictions, answers):
-        f1_score = compute_eval_metric('f1', predictions, answers, dataset=self.config['dataset'])
-        em_score = compute_eval_metric('em', predictions, answers, dataset=self.config['dataset'])
+        f1_score = compute_eval_metric('f1', predictions, answers)
+        em_score = compute_eval_metric('em', predictions, answers)
         return f1_score, em_score
 
     def save(self, dirname):
