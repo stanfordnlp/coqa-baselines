@@ -60,6 +60,13 @@ Run a seq2seq+copy model:
    python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt
 ```
 
+### Testing
+```bash
+  python seq2seq/translate.py -model seq2seq_copy_step_50000.pt -src data/seq2seq-dev-h2-src.txt -output models/pred.txt -replace_unk -verbose
+  python scripts/gen_seq2seq_output.py --data_file data/coqa-dev-v1.0.json --pred_file models/pred.txt --output_file models/seq2seq_copy.prediction.json
+```
+
+
 ## Reading comprehension models
 ### Preprocessing
 Generate the input files for the reading comprehension (extractive question answering) model -- needs to start a CoreNLP server:
@@ -68,9 +75,26 @@ Generate the input files for the reading comprehension (extractive question answ
   python scripts/gen_drqa_data.py --data_file data/coqa-dev-v1.0.json --output_file coqa.dev.json
 ```
 
+### Training
+```bash
+  python -m rc.main --trainset data/coqa.train.json --devset data/coqa.dev.json --n_history 2 --dir rc_models --embed_file wordvecs/glove.840B.300d.txt
+```
+Options:
+* `n_history` can be changed to {0, 1, 2, ..} or -1.
+
+### Testing
+
+
 ## Combined models
 
 ## Results
+
+| Model  | Dev performance |
+| ------------- | ------------- |
+| seq2seq | TODO |
+| seq2seq_copy  | TODO  |
+| DrQA | TODO |
+| Combined | TODO |
 
 ## Citation
 
