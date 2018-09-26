@@ -1,6 +1,12 @@
 # coqa-baselines
 We provide several baselines: conversational models, extractive reading comprehension models and their combined models for the [CoQA challenge](https://stanfordnlp.github.io/coqa/). See more details in the [paper](https://arxiv.org/abs/1808.07042).
 
+Note: As we use the [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) library for all our seq2seq experiments, please use the following command to clone our repository.
+
+```bash
+  git clone --recurse-submodules git@github.com:stanfordnlp/coqa-baselines.git
+```
+
 ## Requirements
 1. PyTorch 0.4
 2. pycorenlp
@@ -63,7 +69,7 @@ Run a seq2seq+copy model:
 
 ### Testing
 ```bash
-  python seq2seq/translate.py -model seq2seq_copy_step_50000.pt -src data/seq2seq-dev-h2-src.txt -output models/pred.txt -replace_unk -verbose
+  python seq2seq/translate.py -model models/seq2seq_copy_acc_65.49_ppl_4.71_e15.pt -src data/seq2seq-dev-h2-src.txt -output models/pred.txt -replace_unk -verbose -gpu 0
   python scripts/gen_seq2seq_output.py --data_file data/coqa-dev-v1.0.json --pred_file models/pred.txt --output_file models/seq2seq_copy.prediction.json
 ```
 
