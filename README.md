@@ -13,8 +13,6 @@ Note: As we use the [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) library 
 3. gensim
 4. torchtext==0.2.1
 
-TODO
-
 ## Download
 Download the dataset:
 ```bash
@@ -42,13 +40,11 @@ Download pre-trained word vectors:
 
 ## Conversational models
 ### Preprocessing
-Generate the input files for seq2seq models --- needs to start a CoreNLP server:
+Generate the input files for seq2seq models --- needs to start a CoreNLP server (`n_history` can be changed to {0, 1, 2, ..} or -1):
 ```bash
   python scripts/gen_seq2seq_data.py --data_file data/coqa-train-v1.0.json --n_history 2 --lower --output_file data/seq2seq-train-h2
   python scripts/gen_seq2seq_data.py --data_file data/coqa-dev-v1.0.json --n_history 2 --lower --output_file data/seq2seq-dev-h2
 ```
-Options:
-* `n_history` can be changed to {0, 1, 2, ..} or -1.
 
 Preprocess the data and embeddings:
 ```bash
@@ -83,11 +79,11 @@ Generate the input files for the reading comprehension (extractive question answ
 ```
 
 ### Training
+`n_history` can be changed to {0, 1, 2, ..} or -1.
 ```bash
   python -m rc.main --trainset data/coqa.train.json --devset data/coqa.dev.json --n_history 2 --dir rc_models --embed_file wordvecs/glove.840B.300d.txt
 ```
-Options:
-* `n_history` can be changed to {0, 1, 2, ..} or -1.
+
 
 ### Testing
 ```bash
@@ -121,7 +117,7 @@ Options:
 | seq2seq | TODO | TODO |
 | seq2seq_copy  | TODO  | TODO |
 | DrQA | 55.6 | 46.2 |
-| Combined | TODO | TODO |
+| Pipeline | TODO | TODO |
 
 ## Citation
 
