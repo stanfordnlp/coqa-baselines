@@ -49,7 +49,7 @@ class Model(object):
         self._init_optimizer()
 
     def init_saved_network(self, saved_dir):
-        _ARGUMENTS = ['model', 'rnn_padding', 'embed_size', 'hidden_size', 'num_layers', 'rnn_type',
+        _ARGUMENTS = ['rnn_padding', 'embed_size', 'hidden_size', 'num_layers', 'rnn_type',
                       'concat_rnn_layers', 'question_merge', 'use_qemb', 'f_qem', 'f_pos', 'f_ner',
                       'sum_loss', 'doc_self_attn', 'resize_rnn_input', 'span_dependency',
                       'fix_embeddings', 'dropout_rnn', 'dropout_emb', 'dropout_ff',

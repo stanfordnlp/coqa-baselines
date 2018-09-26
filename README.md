@@ -84,7 +84,9 @@ Options:
 * `n_history` can be changed to {0, 1, 2, ..} or -1.
 
 ### Testing
-
+```bash
+  python -m rc.main --testset data/coqa.dev.json --n_history 2 --pretrained rc_models --dir eval_dir
+```
 
 ## Combined models
 ### Preprocessing

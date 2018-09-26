@@ -28,6 +28,7 @@ class ModelLogger(object):
         os.mkdir(dirname)
         os.mkdir('{}/{}'.format(dirname, "metrics"))
         sys.stdout = Logger(os.path.join(dirname, Constants._LOG_FILE))
+        self.log_json(self.config, os.path.join(self.dirname, Constants._CONFIG_FILE))
 
     def log_json(self, data, filename, mode='w'):
         with open(filename, mode) as outfile:

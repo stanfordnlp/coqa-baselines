@@ -68,9 +68,8 @@ class ModelHandler(object):
         self.is_test = False
 
     def train(self):
-
-        if self.train_loader is None:
-            print("No training set specified -- skipped training.")
+        if self.train_loader is None or self.dev_loader is None:
+            print("No training set or dev set specified -- skipped training.")
             return
 
         self.is_test = False
@@ -100,12 +99,11 @@ class ModelHandler(object):
             print(format_str.format(self._epoch, self._train_loss.mean(),
                   self._train_f1.mean(), self._train_em.mean()))
 
-            if self.dev_loader is not None:
-                print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
-                self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
-                timer.interval("Validation Epoch {}".format(self._epoch))
-                format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
-                print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
+            print("\n>>> Dev Epoch: [{} / {}]".format(self._epoch, self.config['max_epochs']))
+            self._run_epoch(self.dev_loader, training=False, verbose=self.config['verbose'])
+            timer.interval("Validation Epoch {}".format(self._epoch))
+            format_str = "Validation Epoch {} -- F1: {:0.2f}, EM: {:0.2f} --"
+            print(format_str.format(self._epoch, self._dev_f1.mean(), self._dev_em.mean()))
 
             if self._best_f1 <= self._dev_f1.mean():  # Can be one of loss, f1, or em.
                 self._best_epoch = self._epoch
@@ -154,7 +152,7 @@ class ModelHandler(object):
         test_em = self._dev_em.mean()
 
         timer.finish()
-        print(self.report(self._n_test_batches, test_f1, test_em, mode='test'))
+        print(self.report(self._n_test_batches, None, test_f1, test_em, mode='test'))
         self.logger.log([test_f1, test_em], Constants._TEST_EVAL_LOG)
         print("Finished Testing: {}".format(self.dirname))
 
