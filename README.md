@@ -5,6 +5,7 @@ We provide several baselines: conversational models, extractive reading comprehe
 1. PyTorch 0.4
 2. pycorenlp
 3. gensim
+4. torchtext==0.2.1
 
 TODO
 
@@ -52,12 +53,12 @@ Preprocess the data and embeddings:
 ### Training
 Run a seq2seq (with attention) model:
 ```bash
-   python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt
+   python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
 ```
 
 Run a seq2seq+copy model:
 ```bash
-   python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt
+   python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
 ```
 
 ### Testing
@@ -86,6 +87,11 @@ Options:
 
 
 ## Combined models
+### Preprocessing
+
+### Training
+
+### Testing
 
 ## Results
 

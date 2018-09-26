@@ -69,7 +69,7 @@ if __name__ == '__main__':
             question_str = tokenize_text(question['input_text'])
             answer_str = tokenize_text(answer['input_text'])
 
-            full_str = context_str
+            full_str = context_str + ' ||'
             if args.n_history < 0:
                 for i, (q, a) in enumerate(history):
                     d = len(history) - i
