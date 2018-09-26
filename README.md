@@ -53,24 +53,24 @@ Options:
 Preprocess the data and embeddings:
 ```bash
   python seq2seq/preprocess.py -train_src data/seq2seq-train-h2-src.txt -train_tgt data/seq2seq-train-h2-tgt.txt -valid_src data/seq2seq-dev-h2-src.txt -valid_tgt data/seq2seq-dev-h2-tgt.txt -save_data data/seq2seq-h2 -lower -dynamic_dict -src_seq_length 10000
-  PYTHONPATH=seq2seq python seq2seq/tools/embeddings_to_torch.py -emb_file_enc wordvecs/glove.42B.300d.txt -emb_file_dec wordvecs/glove.42B.300d.txt -dict_file data/seq2seq-h2.vocab.pt -output_file data/seq2seq.embed
+  PYTHONPATH=seq2seq python seq2seq/tools/embeddings_to_torch.py -emb_file_enc wordvecs/glove.42B.300d.txt -emb_file_dec wordvecs/glove.42B.300d.txt -dict_file data/seq2seq-h2.vocab.pt -output_file data/seq2seq-h2.embed
 ```
 
 ### Training
 Run a seq2seq (with attention) model:
 ```bash
-   python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
+   python seq2seq/train.py -data data/seq2seq-h2 -save_model seq2seq_models/seq2seq -word_vec_size 300 -pre_word_vecs_enc data/seq2seq-h2.embed.enc.pt -pre_word_vecs_dec data/seq2seq-h2.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
 ```
 
 Run a seq2seq+copy model:
 ```bash
-   python seq2seq/train.py -data data/seq2seq-h2 -save_model models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
+   python seq2seq/train.py -data data/seq2seq-h2 -save_model seq2seq_models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq.embed.enc.pt -pre_word_vecs_dec data/seq2seq.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
 ```
 
 ### Testing
 ```bash
-  python seq2seq/translate.py -model models/seq2seq_copy_acc_65.49_ppl_4.71_e15.pt -src data/seq2seq-dev-h2-src.txt -output models/pred.txt -replace_unk -verbose -gpu 0
-  python scripts/gen_seq2seq_output.py --data_file data/coqa-dev-v1.0.json --pred_file models/pred.txt --output_file models/seq2seq_copy.prediction.json
+  python seq2seq/translate.py -model seq2seq_models/seq2seq_copy_acc_65.49_ppl_4.71_e15.pt -src data/seq2seq-dev-h2-src.txt -output seq2seq_models/pred.txt -replace_unk -verbose -gpu 0
+  python scripts/gen_seq2seq_output.py --data_file data/coqa-dev-v1.0.json --pred_file seq2seq_models/pred.txt --output_file seq2seq_models/seq2seq_copy.prediction.json
 ```
 
 
@@ -94,12 +94,25 @@ Options:
   python -m rc.main --testset data/coqa.dev.json --n_history 2 --pretrained rc_models
 ```
 
-## Combined models
+## The pipeline model
 ### Preprocessing
+```bash
+  python scripts/gen_pipeline_data.py --data_file data/coqa-train-v1.0.json --output_file1 data/coqa.train.pipeline.json --output_file2 data/seq2seq-train-pipeline
+  python scripts/gen_pipeline_data.py --data_file data/coqa-dev-v1.0.json --output_file1 data/coqa.dev.pipeline.json --output_file2 data/seq2seq-dev-pipeline
+  python seq2seq/preprocess.py -train_src data/seq2seq-train-pipeline-src.txt -train_tgt data/seq2seq-train-pipeline-tgt.txt -valid_src data/seq2seq-dev-pipeline-src.txt -valid_tgt data/seq2seq-dev-pipeline-tgt.txt -save_data data/seq2seq-pipeline -lower -dynamic_dict -src_seq_length 10000
+  PYTHONPATH=seq2seq python seq2seq/tools/embeddings_to_torch.py -emb_file_enc wordvecs/glove.42B.300d.txt -emb_file_dec wordvecs/glove.42B.300d.txt -dict_file data/seq2seq-pipeline.vocab.pt -output_file data/seq2seq-pipeline.embed
+```
 
 ### Training
+```bash
+  python -m rc.main --trainset data/coqa.pipeline.train.json --devset data/coqa.pipeline.dev.json --n_history 2 --dir pipeline_models --embed_file wordvecs/glove.840B.300d.txt --predict_raw_text n
+  python seq2seq/train.py -data data/seq2seq-pipeline -save_model pipeline_models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq-pipeline.embed.enc.pt -pre_word_vecs_dec data/seq2seq-pipeline.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
+```
 
 ### Testing
+```bash
+  TODO
+```
 
 ## Results
 
