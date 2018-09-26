@@ -32,7 +32,7 @@ def get_args():
     parser.add_argument('--trainset', type=str, default=None, help='Training set')
     parser.add_argument('--devset', type=str, default=None, help='Dev set')
     parser.add_argument('--testset', type=str, default=None, help='Test set')
-    parser.add_argument('--dir', type=str, required=True, help='Set the name of the model directory for this session.')
+    parser.add_argument('--dir', type=str, default=None, help='Set the name of the model directory for this session.')
     parser.add_argument('--pretrained', type=str, default=None, help='Specify pretrained model directory.')
 
     parser.add_argument('--random_seed', type=int, default=123, help='Random seed')

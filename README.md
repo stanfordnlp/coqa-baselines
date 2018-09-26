@@ -91,7 +91,7 @@ Options:
 
 ### Testing
 ```bash
-  python -m rc.main --testset data/coqa.dev.json --n_history 2 --pretrained rc_models --dir eval_dir
+  python -m rc.main --testset data/coqa.dev.json --n_history 2 --pretrained rc_models
 ```
 
 ## Combined models
@@ -103,12 +103,12 @@ Options:
 
 ## Results
 
-| Model  | Dev performance |
-| ------------- | ------------- |
-| seq2seq | TODO |
-| seq2seq_copy  | TODO  |
-| DrQA | TODO |
-| Combined | TODO |
+| Model  | Dev F1 | Dev EM |
+| ------------- | ------------- | ------------- |
+| seq2seq | TODO | TODO |
+| seq2seq_copy  | TODO  | TODO |
+| DrQA | 55.6 | 46.2 |
+| Combined | TODO | TODO |
 
 ## Citation
 

@@ -18,8 +18,8 @@ class ModelHandler(object):
     """
 
     def __init__(self, config):
-        self.dirname = config['dir']
-        self.logger = ModelLogger(config, dirname=self.dirname)
+        self.logger = ModelLogger(config, dirname=config['dir'], pretrained=config['pretrained'])
+        self.dirname = self.logger.dirname
         cuda = config['cuda']
         cuda_id = config['cuda_id']
         if not cuda:

@@ -20,15 +20,20 @@ class Logger(object):
 
 class ModelLogger(object):
 
-    def __init__(self, config, dirname=None):
+    def __init__(self, config, dirname=None, pretrained=None):
         self.config = config
-        self.dirname = dirname
-        if os.path.exists(dirname):
-            raise Exception('Directory already exists: {}'.format(dirname))
-        os.mkdir(dirname)
-        os.mkdir('{}/{}'.format(dirname, "metrics"))
-        sys.stdout = Logger(os.path.join(dirname, Constants._LOG_FILE))
-        self.log_json(self.config, os.path.join(self.dirname, Constants._CONFIG_FILE))
+        if dirname is None:
+            if pretrained is None:
+                raise Exception('Either --dir or --pretrained needs to be specified.')
+            self.dirname = pretrained
+        else:
+            self.dirname = dirname
+            if os.path.exists(dirname):
+                raise Exception('Directory already exists: {}'.format(dirname))
+            os.mkdir(dirname)
+            os.mkdir('{}/{}'.format(dirname, "metrics"))
+            self.log_json(self.config, os.path.join(self.dirname, Constants._CONFIG_FILE))
+        sys.stdout = Logger(os.path.join(self.dirname, Constants._LOG_FILE))
 
     def log_json(self, data, filename, mode='w'):
         with open(filename, mode) as outfile:
