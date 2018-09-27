@@ -80,7 +80,7 @@ class WordModel(object):
         else:
             self._model = KeyedVectors.load_word2vec_format(filename, binary=True
                                                             if embed_type == 'word2vec' else False)
-        print('Embeddings: vocab = {}, embed_size = {}'.format(self._model.vocab_size, self._model.vector_size))
+        print('Embeddings: vocab = {}, embed_size = {}'.format(len(self._model.vocab), self._model.vector_size))
         timer.finish()
 
     def get_vocab(self):
