@@ -111,7 +111,7 @@ Generate the input files for the reading comprehension (extractive question answ
 ### Testing
 ```bash
   python rc/main.py --testset data/coqa.dev.json --n_history 2 --pretrained pipeline_models
-  py scripts/gen_pipeline_for_seq2seq.py -d data/coqa.dev.json -o pipeline_models/pipeline-seq2seq-src.txt -p pipeline_models/predictions.json
+  py scripts/gen_pipeline_for_seq2seq.py --data_file data/coqa.dev.json --output_file pipeline_models/pipeline-seq2seq-src.txt --pred_file pipeline_models/predictions.json
   python seq2seq/translate.py -model pipeline_models/seq2seq_copy_acc_85.00_ppl_2.18_e16.pt -src pipeline_models/pipeline-seq2seq-src.txt -output pipeline_models/pred.txt -replace_unk -verbose -gpu 0
   python scripts/gen_seq2seq_output.py --data_file data/coqa-dev-v1.0.json --pred_file pipeline_models/pred.txt --output_file pipeline_models/pipeline.prediction.json
 ```
