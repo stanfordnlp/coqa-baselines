@@ -6,8 +6,8 @@ Module to handle word vectors and initializing embeddings.
 import numpy as np
 from gensim.models.keyedvectors import KeyedVectors
 
-from .utils import constants as Constants
-from .utils.timer import Timer
+from utils import constants as Constants
+from utils.timer import Timer
 from collections import Counter
 
 

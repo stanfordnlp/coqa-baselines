@@ -83,13 +83,13 @@ Generate the input files for the reading comprehension (extractive question answ
 ### Training
 `n_history` can be changed to {0, 1, 2, ..} or -1.
 ```bash
-  python -m rc.main --trainset data/coqa.train.json --devset data/coqa.dev.json --n_history 2 --dir rc_models --embed_file wordvecs/glove.840B.300d.txt
+  python rc/main.py --trainset data/coqa.train.json --devset data/coqa.dev.json --n_history 2 --dir rc_models --embed_file wordvecs/glove.840B.300d.txt
 ```
 
 
 ### Testing
 ```bash
-  python -m rc.main --testset data/coqa.dev.json --n_history 2 --pretrained rc_models
+  python rc/main.py --testset data/coqa.dev.json --n_history 2 --pretrained rc_models
 ```
 
 ## The pipeline model
@@ -104,13 +104,13 @@ Generate the input files for the reading comprehension (extractive question answ
 ### Training
 `n_history` can be changed to {0, 1, 2, ..} or -1.
 ```bash
-  python -m rc.main --trainset data/coqa.train.pipeline.json --devset data/coqa.dev.pipeline.json --n_history 2 --dir pipeline_models --embed_file wordvecs/glove.840B.300d.txt --predict_raw_text n
+  python rc/main.py --trainset data/coqa.train.pipeline.json --devset data/coqa.dev.pipeline.json --n_history 2 --dir pipeline_models --embed_file wordvecs/glove.840B.300d.txt --predict_raw_text n
   python seq2seq/train.py -data data/seq2seq-pipeline -save_model pipeline_models/seq2seq_copy -copy_attn -reuse_copy_attn -word_vec_size 300 -pre_word_vecs_enc data/seq2seq-pipeline.embed.enc.pt -pre_word_vecs_dec data/seq2seq-pipeline.embed.dec.pt -epochs 50 -gpuid 0 -seed 123
 ```
 
 ### Testing
 ```bash
-  python -m rc.main --testset data/coqa.dev.json --n_history 2 --pretrained pipeline_models
+  python rc/main.py --testset data/coqa.dev.json --n_history 2 --pretrained pipeline_models
   py scripts/gen_pipeline_for_seq2seq.py -d data/coqa.dev.json -o pipeline_models/pipeline-seq2seq-src.txt -p pipeline_models/predictions.json
   python seq2seq/translate.py -model pipeline_models/seq2seq_copy_acc_85.00_ppl_2.18_e16.pt -src pipeline_models/pipeline-seq2seq-src.txt -output pipeline_models/pred.txt -replace_unk -verbose -gpu 0
   python scripts/gen_seq2seq_output.py --data_file data/coqa-dev-v1.0.json --pred_file pipeline_models/pred.txt --output_file pipeline_models/pipeline.prediction.json

@@ -5,12 +5,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
 
-from .word_model import WordModel
-from .utils.eval_utils import compute_eval_metric
-from .models.layers import multi_nll_loss
-from .utils import constants as Constants
+from word_model import WordModel
+from utils.eval_utils import compute_eval_metric
+from models.layers import multi_nll_loss
+from utils import constants as Constants
 from collections import Counter
-from .models.drqa import DrQA
+from models.drqa import DrQA
 
 
 class Model(object):

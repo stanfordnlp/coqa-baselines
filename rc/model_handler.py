@@ -1,15 +1,15 @@
 import time
-from .utils.data_utils import prepare_datasets
-from .utils import constants as Constants
-from .model import Model
+from utils.data_utils import prepare_datasets
+from utils import constants as Constants
+from model import Model
 import torch
 import os
 import json
 from torch.utils.data import DataLoader
-from .utils.timer import Timer
-from .utils.logger import ModelLogger
-from .utils.eval_utils import AverageMeter
-from .utils.data_utils import sanitize_input, vectorize_input
+from utils.timer import Timer
+from utils.logger import ModelLogger
+from utils.eval_utils import AverageMeter
+from utils.data_utils import sanitize_input, vectorize_input
 
 
 class ModelHandler(object):
