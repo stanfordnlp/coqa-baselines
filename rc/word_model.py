@@ -26,8 +26,6 @@ class GloveModel(object):
                 w = splitLine[0]
                 self.word_vecs[w] = np.array([float(val) for val in splitLine[1:]])
                 self.vocab.append(w)
-
-        self.vocab_size = len(self.vocab)
         self.vector_size = len(self.word_vecs[w])
 
     def word_vec(self, word):
