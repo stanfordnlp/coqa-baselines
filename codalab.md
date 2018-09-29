@@ -38,6 +38,10 @@ Add dev-file to your worksheet.
 ## 4. Install requirements and run the code
 [run_on_codalab.sh](run_on_codalab.sh) installs the requirements and runs the code. On the codalab worksheet's web terminal, run the following command which specifies the docker, number of gpus, cpu memory, etc.
 
-```cl run :coqa-dev-v1.0.json :coqa-baselines --request-docker-image floydhub/pytorch:0.4.0-gpu.cuda9cudnn7-py3.33 --request-network --request-gpus 1 --request-memory 6g 'sh run_on_codalab.sh' ```
+```
+  cl run :coqa-dev-v1.0.json :coqa-baselines --request-docker-image floydhub/pytorch:0.4.0-gpu.cuda9cudnn7-py3.33 --request-network --request-gpus 1 --request-memory 6g 'sh run_on_codalab.sh'
+```
 
+The resulting worksheet looks like this https://worksheets.codalab.org/worksheets/0xa8916802a3144c00a5cd6cd9f59768e4/
 
+You can access the final predictions in [baseline_combined_model/predictions.combined.json](https://worksheets.codalab.org/rest/bundles/0x8bc73ba8cd904d778d7d1817b154fcaf/contents/blob/baseline_combined_model/)
