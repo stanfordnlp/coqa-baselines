@@ -1,5 +1,5 @@
 # coqa-baselines
-We provide several baselines: conversational models, extractive reading comprehension models and their combined models for the [CoQA challenge](https://stanfordnlp.github.io/coqa/). See more details in the [paper](https://arxiv.org/abs/1808.07042).
+We provide several baselines: conversational models, extractive reading comprehension models and their combined models for the [CoQA challenge](https://stanfordnlp.github.io/coqa/). See more details in the [paper](https://arxiv.org/abs/1808.07042). We also provide [instructions](codalab.md) on how to run pretrained models on Codalab -- our platform for evaluation on the test set.
 
 Note: As we use the [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) library for all our seq2seq experiments, please use the following command to clone our repository.
 
