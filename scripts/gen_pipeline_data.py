@@ -113,6 +113,10 @@ if __name__ == '__main__':
                   'filename': datum['filename']}
         _datum['annotated_context'] = process(context_str)
         _datum['qas'] = []
+        _datum['context'] += UNK
+        _datum['annotated_context']['word'].append(UNK)
+        _datum['annotated_context']['offsets'].append(
+            (len(_datum['context']) - len(UNK), len(_datum['context'])))
         assert len(datum['questions']) == len(datum['answers'])
 
         additional_answers = {}
@@ -138,10 +142,6 @@ if __name__ == '__main__':
             _qas['annotated_answer'] = process(answer['input_text'])
             _qas['answer_span_start'] = answer['span_start']
             _qas['answer_span_end'] = answer['span_end']
-            _datum['context'] += UNK
-            _datum['annotated_context']['word'].append(UNK)
-            _datum['annotated_context']['offsets'].append(
-                (len(_datum['context']) - len(UNK), len(_datum['context'])))
 
             start = answer['span_start']
             end = answer['span_end']

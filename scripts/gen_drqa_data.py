@@ -74,7 +74,7 @@ def normalize_answer(s):
     return white_space_fix(remove_articles(remove_punc(lower(s))))
 
 
-def find_span_with_gt(context, offsets, ground_truth, max_len=15):
+def find_span_with_gt(context, offsets, ground_truth):
     best_f1 = 0.0
     best_span = (len(offsets) - 1, len(offsets) - 1)
     gt = normalize_answer(ground_truth).split()
@@ -129,6 +129,10 @@ if __name__ == '__main__':
                   'filename': datum['filename']}
         _datum['annotated_context'] = process(context_str)
         _datum['qas'] = []
+        _datum['context'] += UNK
+        _datum['annotated_context']['word'].append(UNK)
+        _datum['annotated_context']['offsets'].append(
+            (len(_datum['context']) - len(UNK), len(_datum['context'])))
         assert len(datum['questions']) == len(datum['answers'])
 
         additional_answers = {}
@@ -154,10 +158,6 @@ if __name__ == '__main__':
             _qas['annotated_answer'] = process(answer['input_text'])
             _qas['answer_span_start'] = answer['span_start']
             _qas['answer_span_end'] = answer['span_end']
-            _datum['context'] += UNK
-            _datum['annotated_context']['word'].append(UNK)
-            _datum['annotated_context']['offsets'].append(
-                (len(_datum['context']) - len(UNK), len(_datum['context'])))
 
             start = answer['span_start']
             end = answer['span_end']
