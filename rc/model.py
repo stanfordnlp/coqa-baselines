@@ -100,6 +100,14 @@ class Model(object):
             feature_dict['f_qem_cased'] = len(feature_dict)
             feature_dict['f_qem_uncased'] = len(feature_dict)
 
+        if self.config['f_history']:
+            max_history = 20 if self.config['n_history'] < 0 else self.config['n_history']
+            for i in range(1, max_history + 1):
+                feature_dict['f_Q{}_cased'.format(i)] = len(feature_dict)
+                feature_dict['f_Q{}_uncased'.format(i)] = len(feature_dict)
+                feature_dict['f_A{}_cased'.format(i)] = len(feature_dict)
+                feature_dict['f_A{}_uncased'.format(i)] = len(feature_dict)
+
         if self.config['f_pos']:
             pos_tags = set()
             for ex in train_set:

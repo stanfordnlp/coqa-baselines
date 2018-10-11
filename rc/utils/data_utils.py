@@ -55,10 +55,11 @@ class CoQADataset(Dataset):
                         temp.extend(q)
                         temp.append('<A{}>'.format(d))
                         temp.extend(a)
-                temp.append('<Q>')
-                temp.extend(qas['annotated_question']['word'])
+                # temp.append('<Q>')
+                # temp.extend(qas['annotated_question']['word'])
                 history.append((qas['annotated_question']['word'], qas['annotated_answer']['word']))
-                qas['annotated_question']['word'] = temp
+                # qas['annotated_question']['word'] = temp
+                qas['history'] = temp
                 self.examples.append(qas)
                 question_lens.append(len(qas['annotated_question']['word']))
                 paragraph_lens.append(len(paragraph['annotated_context']['word']))
@@ -87,6 +88,7 @@ class CoQADataset(Dataset):
 
         sample = {'id': (paragraph['id'], qas['turn_id']),
                   'question': question,
+                  'history': qas['history'],
                   'answers': answers,
                   'evidence': paragraph['annotated_context'],
                   'targets': qas['answer_span']}
@@ -164,7 +166,7 @@ def sanitize_input(sample_batch, config, vocab, feature_dict, training=True):
             sanitized_batch['evidence_text'].append(evidence)
 
         # featurize evidence document:
-        sanitized_batch['features'].append(featurize(ex['question'], ex['evidence'], feature_dict))
+        sanitized_batch['features'].append(featurize(ex['question'], ex['evidence'], feature_dict, ex['history']))
         sanitized_batch['targets'].append(ex['targets'])
         sanitized_batch['answers'].append(ex['answers'])
         if 'id' in ex:
@@ -241,11 +243,30 @@ def vectorize_input(batch, config, training=True, device=None):
     return example
 
 
-def featurize(question, document, feature_dict):
+def featurize(question, document, feature_dict, history=None):
     doc_len = len(document['word'])
     features = torch.zeros(doc_len, len(feature_dict))
     q_cased_words = set([w for w in question['word']])
     q_uncased_words = set([w.lower() for w in question['word']])
+
+    cased_words = {}
+    uncased_words = {}
+    if history is not None:
+        f_cased = f_uncased = ''
+        for w in history:
+            if (w.startswith('<Q') or w.startswith('<A')) and w.endswith('>'):
+                f_cased = 'f_{}_cased'.format(w[1:-1])
+                f_uncased = 'f_{}_uncased'.format(w[1:-1])
+                if f_cased in feature_dict:
+                    cased_words[f_cased] = set()
+                if f_uncased in feature_dict:
+                    uncased_words[f_uncased] = set()
+            else:
+                if f_cased in cased_words:
+                    cased_words[f_cased].add(w)
+                if f_uncased in uncased_words:
+                    uncased_words[f_uncased].add(w.lower())
+
     for i in range(doc_len):
         d_word = document['word'][i]
         if 'f_qem_cased' in feature_dict and d_word in q_cased_words:
@@ -260,4 +281,10 @@ def featurize(question, document, feature_dict):
             f_ner = 'f_ner={}'.format(document['ner'][i])
             if f_ner in feature_dict:
                 features[i][feature_dict[f_ner]] = 1.0
+        for f in cased_words:
+            if d_word in cased_words[f]:
+                features[i][feature_dict[f]] = 1.0
+        for f in uncased_words:
+            if d_word.lower() in uncased_words[f]:
+                features[i][feature_dict[f]] = 1.0
     return features

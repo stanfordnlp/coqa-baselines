@@ -40,9 +40,9 @@ def get_args():
     parser.add_argument('--cuda_id', type=int, default=-1, help='Specify a CUDA id.')
     parser.add_argument('--debug', type=str2bool, default=False)
 
-    parser.add_argument('--n_history', type=int, default=0)
+    parser.add_argument('--n_history', type=int, default=-1)
     parser.add_argument('--cased', type=str2bool, default=True, help='Cased or uncased version.')
-    parser.add_argument('--min_freq', type=int, default=20)
+    parser.add_argument('--min_freq', type=int, default=100)
     parser.add_argument('--top_vocab', type=int, default=100000)
 
     group = parser.add_argument_group('model_spec')
@@ -58,6 +58,8 @@ def get_args():
                        default='self_attn', help='The way of question encoding.')
     group.add_argument('--use_qemb', type=str2bool, default=True, help='Whether to add question aligned embedding.')
     group.add_argument('--f_qem', type=str2bool, default=True, help='Add exact match question feature to embedding.')
+    group.add_argument('--f_history', type=str2bool, default=False,
+                       help='Add exact match feature corresponding to history.')
     group.add_argument('--f_pos', type=str2bool, default=False, help='Add POS feature to embedding.')
     group.add_argument('--f_ner', type=str2bool, default=False, help='Add NER feature to embedding.')
     group.add_argument('--sum_loss', type=str2bool, default=False, help="Set the type of loss.")
@@ -68,7 +70,7 @@ def get_args():
     group.add_argument('--span_dependency', type=str2bool, default=True,
                        help='Toggles dependency between the start and end span predictions for DrQA.')
     group.add_argument('--fix_embeddings', type=str2bool, default=False, help='Whether to fix embeddings.')
-    group.add_argument('--dropout_rnn', type=float, default=0.3, help='Set RNN dropout in reader.')
+    group.add_argument('--dropout_rnn', type=float, default=0.4, help='Set RNN dropout in reader.')
     group.add_argument('--dropout_emb', type=float, default=0.5, help='Set embedding dropout.')
     group.add_argument('--dropout_ff', type=float, default=0.5, help='Set dropout for all feedforward layers.')
     group.add_argument('--dropout_rnn_output', type=str2bool, default=True, help='Whether to dropout last layer.')
