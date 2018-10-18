@@ -1,11 +1,14 @@
 # coqa-baselines
 We provide several baselines: conversational models, extractive reading comprehension models and their combined models for the [CoQA challenge](https://stanfordnlp.github.io/coqa/). See more details in the [paper](https://arxiv.org/abs/1808.07042). We also provide [instructions](codalab.md) on how to run pretrained models on Codalab -- our platform for evaluation on the test set.
 
-Note: As we use the [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) library for all our seq2seq experiments, please use the following command to clone our repository.
+As we use the [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) library for all our seq2seq experiments, please use the following command to clone our repository.
 
 ```bash
   git clone --recurse-submodules git@github.com:stanfordnlp/coqa-baselines.git
 ```
+
+This code repository was mostly written by [Danqi Chen](https://github.com/danqi), built on top of the [DrQA project](https://github.com/facebookresearch/DrQA) and [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py), with some help from [Shayne Longpre](https://github.com/Shayne13/) and [Siva Reddy](https://github.com/sivareddyg). If you have any questions about this repository, please use Github Issues.
+
 
 ## Requirements
 ```
