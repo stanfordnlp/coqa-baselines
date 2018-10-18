@@ -7,7 +7,7 @@ As we use the [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) library for al
   git clone --recurse-submodules git@github.com:stanfordnlp/coqa-baselines.git
 ```
 
-This code repository was mostly written by [Danqi Chen](https://github.com/danqi), built on top of the [DrQA project](https://github.com/facebookresearch/DrQA) and [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py), with some help from [Shayne Longpre](https://github.com/Shayne13/) and [Siva Reddy](https://github.com/sivareddyg). If you have any questions about this repository, please use Github Issues.
+This code repository was mostly written by [Danqi Chen](https://github.com/danqi), built on top of the [DrQA](https://github.com/facebookresearch/DrQA) and [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) projects, with some help from [Shayne Longpre](https://github.com/Shayne13/) and [Siva Reddy](https://github.com/sivareddyg). If you have any questions about this repository, please use Github Issues.
 
 
 ## Requirements
