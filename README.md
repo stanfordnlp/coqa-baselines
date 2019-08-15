@@ -133,12 +133,12 @@ All the results are based on `n_history = 2`:
 ## Citation
 
 ```
-  @article{reddy2018coqa,
-     title={CoQA: A Conversational Question Answering Challenge},
-     author={Reddy, Siva and Chen, Danqi and Manning, Christopher D},
-     journal={arXiv preprint arXiv:1808.07042},
-     year={2018}
-   }
+    @article{reddy2019coqa,
+      title={{CoQA}: A Conversational Question Answering Challenge},
+      author={Reddy, Siva and Chen, Danqi and Manning, Christopher D},
+      journal={Transactions of the Association of Computational Linguistics (TACL)},
+      year={2019}
+    }
 ```
 
 ## License
