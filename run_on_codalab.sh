@@ -5,7 +5,7 @@ pip install pycorenlp torchtext==0.2.1 gensim
 echo "Requirements Installed"
 
 echo "Running corenlp server"
-wget http://central.maven.org/maven2/edu/stanford/nlp/stanford-corenlp/3.9.1/stanford-corenlp-3.9.1.jar
+wget https://central.maven.org/maven2/edu/stanford/nlp/stanford-corenlp/3.9.1/stanford-corenlp-3.9.1.jar
 java -mx4g -cp stanford-corenlp-3.9.1.jar edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9000 -timeout 15000 &
 sleep 5
 echo "Corenlp server running"
