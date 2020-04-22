@@ -49,7 +49,7 @@ The resulting worksheet looks like this https://worksheets.codalab.org/worksheet
 
 You can access the final predictions in [baseline_combined_model/predictions.combined.json](https://worksheets.codalab.org/rest/bundles/0x8bc73ba8cd904d778d7d1817b154fcaf/contents/blob/baseline_combined_model/)
 
-Email sivar@stanford.edu when you can run your model successfully.
+Email `coqa.submission@gmail.com` when you can run your model successfully.
 
 Please email these details:
 
